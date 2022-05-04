@@ -13,7 +13,7 @@ Description: From given data visualise the interactive sunburst diagram.
       1) Detailed individual trajectories clustered by similarity
       2) Provide average and median length of states of these trajectories 
       3) Show lengths of each state aligned from start
-License: GPL-3
+License: Apache License 2.0
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
