@@ -9,7 +9,7 @@ trajectoryViz <- function(inputData) {
            "sunburstR", "ggiraph", "stringr", "tibble", "DT", "devtools"),
          require, character.only = TRUE)
 
-  dataTables <- trajectoryDataPrep(inputData)
+  dataTables <- trajectoryDataPrep(inputData) #comment
   freqPaths <- dataTables[[1]]
   patPaths <- dataTables[[2]]
   patStateLevel <- dataTables[[3]]
