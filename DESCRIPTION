@@ -1,0 +1,38 @@
+Package: trajectoryViz
+Title: Visualize Trajectories (drug sequence, state sequence) and extract detailed paths
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Maarja",
+           family = "Pajusalu",
+           role = c("aut", "cre"),
+           email = "maarja.pajusalu@ut.ee",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: From given data visualise the interactive sunburst diagram. 
+    Show data details. 
+    On sunburst click generate from selected sequence:
+      1) Detailed individual trajectories clustered by similarity
+      2) Provide average and median length of states of these trajectories 
+      3) Show lengths of each state aligned from start
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Imports:  
+    readr,
+    tidyr,
+    dplyr,
+    shinydashboard,
+    shiny,
+    sunburstR,
+    ggplot2,
+    stringr,
+    DT,
+    ggiraph,
+    tibble,
+    shinyjs,
+    htmlwidgets,
+    devtools
