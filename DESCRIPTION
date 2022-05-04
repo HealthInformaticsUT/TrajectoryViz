@@ -21,7 +21,7 @@ RoxygenNote: 7.1.2
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-Imports:  
+Imports: 
     readr,
     tidyr,
     dplyr,
@@ -36,3 +36,5 @@ Imports:
     shinyjs,
     htmlwidgets,
     devtools
+URL: https://github.com/MaarjaPajusalu/trajectoryViz
+BugReports: https://github.com/MaarjaPajusalu/trajectoryViz/issues
