@@ -1,6 +1,4 @@
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 # About TrajectoryViz
 
 TrajectoryViz is an R package for visualizing patient level event
@@ -15,10 +13,10 @@ R.
 ## Installation
 
 You can install the development version of TrajectoryViz:
-<https://github.com/HealthInformaticsUT/TrajectoryViz> Run with:
-trajectoryViz(data) Get your data with Cohort2Trajectory (by Markus
+<https://github.com/HealthInformaticsUT/TrajectoryViz>. Run with:
+trajectoryViz(data). Get your data with Cohort2Trajectory (by Markus
 Haug) as described in its documentation at:
-<https://github.com/HealthInformaticsUT/Cohort2Trajectory>
+<https://github.com/HealthInformaticsUT/Cohort2Trajectory>.
 
 ``` r
 library(trajectoryViz)

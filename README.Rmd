@@ -2,8 +2,6 @@
 output: github_document
 ---
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -20,11 +18,11 @@ TrajectoryViz is an R package for visualizing patient level event sequences, to 
 ## Installation
 
 You can install the development version of TrajectoryViz:
-https://github.com/HealthInformaticsUT/TrajectoryViz 
+https://github.com/HealthInformaticsUT/TrajectoryViz. 
 Run with: 
-trajectoryViz(data)
+trajectoryViz(data).
 Get your data with Cohort2Trajectory (by Markus Haug) as described in its documentation at:
-https://github.com/HealthInformaticsUT/Cohort2Trajectory
+https://github.com/HealthInformaticsUT/Cohort2Trajectory.
 
 ``` r
 library(trajectoryViz)
