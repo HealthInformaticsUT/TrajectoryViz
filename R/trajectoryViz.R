@@ -425,7 +425,7 @@ trajectoryViz <- function(inputData) {
     ## Shiny INFO tab ----
     output$infoPlots <- renderText("")
     output$infoTables <- renderText("")
-    output$plotImage <- renderImage(list(src='plot-ov1.png', width ="95%",  height = "auto"),
+    output$plotImage <- renderImage(list(src='plot-1.png', width ="95%",  height = "auto"),
                                     deleteFile = FALSE)
   }
 
