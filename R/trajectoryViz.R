@@ -150,13 +150,15 @@ trajectoryViz <- function(inputData) {
                                  }"
                                ),
                                h3("Frequences"),
-                               div("A block"),
+                               div("Input for the sunburst. Each row is a unique sequence with its frequency in the dataset"),
                                h3("Paths"),
-                               div("A block"),
+                               div("For the patient-level trajectory plot. Each row indicates a patient and its treatment trajectory details."),
+                               div("In columns: ID, sequence as a string, each STATE (L1 - L11), length of each state (Len1 - Len11)"),
                                h3("Levels"),
-                               div("A block"),
+                               div("For the patient-level trajectory plot."),
+                               div("Each row indicates a discrete period (length pre-defined in Cohort2Trajectory) from the patient's treatment trajectory."),
                                h3("Source"),
-                               div("A block"),
+                               div("Input data that was used to run trajectoryViz()."),
                                textOutput("infoTables"))
           )
         ) # TabItem end
