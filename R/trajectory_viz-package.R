@@ -7,10 +7,15 @@
 #'
 #' @import readr
 #' @import tidyr
+#' @import tidyverse
 #' @import dplyr
 #' @import ggplot2
+#' @import ggrepel
 #' @import shinydashboard
+#' @import shinydashboardPlus
 #' @import shiny
+#' @import shinycssloaders
+#' @import plotly
 #' @import sunburstR
 #' @import ggiraph
 #' @import stringr

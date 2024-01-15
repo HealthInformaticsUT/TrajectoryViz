@@ -3,15 +3,19 @@
 #' @param inputData data read in when running function "trajectoryViz"
 trajectoryDataPrep <- function(inputData){
   ### Find labels and create color palette  ----
-  #inputData <- read_csv("Prostate_ADT_ravimid_30days.csv")
+  colnames(inputData)[which(names(inputData) == "STATE_LABEL")]<- "STATE"
+  inputData$STATE <- gsub('-','',inputData$STATE)
   labels <- c(unique(inputData$STATE), "End") # "End" is required for RSunburst package input
   labels <- labels[!labels %in% c("START", "EXIT", "OUT OF COHORT", "End")]
+
   colors_all <- c("#E69F00", "#56B4E9", "#F0E442", "#009E73",
                   "#0072B2", "#D55E00", "#CC79A7", "#004949",
                   "#b66dff", "#924900", "#ff6db6", "#490092", "#601A4A" )
+
   colors <- colors_all[1:length(labels)]
   colorsDef <- setNames(c(colors,"#cccccc"), c(labels, "OUT OF COHORT"))
-  ### Data prep for "patStateLevel" as an input to plot patient-level pathways ----
+
+  ## Data prep for "patStateLevel" as an input to plot patient-level pathways ----
   patStateLevel <- inputData %>% ## Label ALL LEVELS
     filter(STATE != "START" & STATE != "EXIT") %>%
     group_by(SUBJECT_ID) %>%
@@ -118,12 +122,15 @@ trajectoryDataPrep <- function(inputData){
     arrange(SUBJECT_ID)
 
   ## Count path frequences
-  freqPaths <- patPaths %>% # <<-
+  freqPaths <- patPaths %>%
     group_by(path) %>%
     summarise(freq = n()) %>%
     ungroup() %>%
     arrange(desc(freq))
-  ### Return ----
-  return(list(freqPaths, patPaths, patStateLevel, colorsDef, labels, colors))
-}
 
+  freqPaths2Percent <- freqPaths
+  freqPaths2Percent <- freqPaths2Percent %>%
+    mutate(percentage = round((freq/length(patPaths$SUBJECT_ID)*100),2))
+  ### Return ----
+  return(list(freqPaths, patPaths, patStateLevel, colorsDef, labels, colors, freqPaths2Percent))
+}
