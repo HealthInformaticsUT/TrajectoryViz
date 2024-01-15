@@ -12,13 +12,15 @@ R.
 
 ## Installation
 
-You can install the development version of TrajectoryViz:
-<https://github.com/HealthInformaticsUT/TrajectoryViz>. Run with:
-trajectoryViz(data). Get your data with Cohort2Trajectory (by Markus
+You can install the version 1.0 of TrajectoryViz:
+<https://github.com/MaarjaPajusalu/TrajectoryViz>. 
+Run with:
+trajectoryViz().
+Get your data with Cohort2Trajectory (by Markus
 Haug) as described in its documentation at:
 <https://github.com/HealthInformaticsUT/Cohort2Trajectory>.
 
 ``` r
 library(trajectoryViz)
-trajectoryViz(data)
+trajectoryViz()
 ```
