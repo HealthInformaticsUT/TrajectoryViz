@@ -18,7 +18,7 @@ TrajectoryViz is an R package for visualizing patient level event sequences, to 
 ## Installation
 
 You can install the development version of TrajectoryViz:
-https://github.com/HealthInformaticsUT/TrajectoryViz. 
+https://github.com/MaarjaPajusalu/TrajectoryViz. 
 Run with: 
 trajectoryViz().
 Get your data with Cohort2Trajectory (by Markus Haug) as described in its documentation at:
