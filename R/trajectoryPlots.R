@@ -3,28 +3,14 @@
 #' @param patStateLevel data frame from trajectoryDataPrep
 #' @param startState reactive input from user input
 cutStart <- function(patStateLevel, startState){
-  selectedStart <- patStateLevel %>%
-    select(SUBJECT_ID, STATE, TIME, DrugLEVEL)
-  selectedStart1 <- selectedStart %>%
-    filter(DrugLEVEL == startState) %>% # selectedDrug + -1
-    mutate(selectedStartTIME = selectedStart$TIME[selectedStart$DrugLEVEL == startState]) %>%
-    select(SUBJECT_ID, selectedStartTIME) %>%
-    unique() %>%
+  selectedStartData = patStateLevel %>%
     group_by(SUBJECT_ID) %>%
-    filter(selectedStartTIME == min(selectedStartTIME))
-  #n_distinct(selectedStart1$SUBJECT_ID)
-
-  selectedStart <- left_join(selectedStart, selectedStart1)
-  #n_distinct(selectedStart$SUBJECT_ID)
-
-  selectedStartData <- selectedStart %>%
-    filter(selectedStart$TIME >= selectedStart$selectedStartTIME) %>%
+    mutate(CONTAINS_LEVEL = any(str_c(STATE, "-", SEQ_ORDINAL) == startState)) %>%
+    ungroup() %>%
+    filter(CONTAINS_LEVEL) %>%
+    select(-CONTAINS_LEVEL) %>%
     group_by(SUBJECT_ID) %>%
-    arrange(SUBJECT_ID, TIME) %>%
-    mutate(STATE_START_DATE = 1:n()) %>%
-    mutate(STATE_END_DATE = 1:n()) %>%
-    ungroup()#%>%
-    #select(-TIME, -DrugLEVEL, -selectedStartTIME)
+    filter(STATE_START_DATE >= STATE_START_DATE[str_c(STATE, "-", SEQ_ORDINAL) == startState])
 
   return(selectedStartData)
 }
@@ -37,40 +23,60 @@ cutStart <- function(patStateLevel, startState){
 #' @param colorsDef from trajectoryDataPrep
 clustPlots <- function(patStateLevel, pathClicked, patPaths, colorsDef) { # FUNCTION clustPlotsO sunburst click -> plot with NO OUT OF COHORT periods
   data <- patStateLevel
+
   selected <- patPaths %>%
-    filter(str_sub(path1, 1, nchar(pathClicked)) == pathClicked)
+    filter(str_detect(path1, str_c("^", pathClicked)))
 
-  mat_data <- selected %>%
-    select(SUBJECT_ID, Len1, Len2, Len3)
-  mat <- mat_data %>%
-    as.data.frame() %>%
-    column_to_rownames("SUBJECT_ID") %>%
-    as.matrix()
+  if(nrow(selected) > 1){
+    mat_data <- selected %>%
+      select(SUBJECT_ID, starts_with("Len"))
+    mat <- mat_data %>%
+      as.data.frame() %>%
+      column_to_rownames("SUBJECT_ID") %>%
+      select(1:length(str_split(str_replace(pathClicked, "---End", ""), "---")[[1]])) %>%
+      as.matrix()
 
-  hc <- hclust(dist(mat, method = "euclidean"), method = "complete")
-  ord1 <- tibble(
-    Rank1 = 1:nrow(mat),
-    SUBJECT_ID = as.double(rownames(mat)[hc$order])
+
+
+    hc <- hclust(dist(mat, method = "euclidean"), method = "complete")
+    ord1 <- tibble(
+      Rank1 = 1:nrow(mat),
+      SUBJECT_ID = as.double(rownames(mat)[hc$order])
+    )
+  }
+
+  else(
+    ord1 <- tibble(
+      Rank1 = 1,
+      SUBJECT_ID = selected$SUBJECT_ID
+    )
   )
+
 
   data1 <- data %>%
     filter(SUBJECT_ID %in% selected$SUBJECT_ID)
-  data <- left_join(data1, ord1)
+  data <- left_join(data1, ord1, by = join_by(SUBJECT_ID))
 
-  dataDrugs <- data %>%
-    filter(STATE != "OUT OF COHORT") %>%
+  dataEvents <- data %>%
     group_by(SUBJECT_ID) %>%
-    mutate(MONTH1 = 1:n()) %>%
+    mutate(REL_STATE_START_DATE = as.numeric(STATE_START_DATE - min(STATE_START_DATE))) %>%
+    mutate(REL_STATE_END_DATE = as.numeric(STATE_END_DATE - min(STATE_START_DATE))) %>%
     ungroup()
-  dataDrugs <- left_join(dataDrugs, patPaths)
+
+  dataOOC <- dataEvents %>%
+    group_by(SUBJECT_ID, Rank1) %>%
+    summarise(
+      REL_STATE_START_DATE = min(REL_STATE_START_DATE),
+      REL_STATE_END_DATE = max(REL_STATE_END_DATE)
+    ) %>%
+    ungroup()
 
   # Set geom parameters
-  col_name1 <- dataDrugs$MONTH1
-  colors <- colorsDef
-  plot <- ggplot(dataDrugs, aes(x = col_name1, y = Rank1, tooltip = DrugLEVEL, data_id = DrugLEVEL, fill = STATE)) +
-    geom_tile_interactive() +
+  plot <- ggplot(dataEvents) +
+    geom_rect(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1, ymax = Rank1 + 1), fill = colorsDef["OUT OF COHORT"], data = dataOOC) +
+    geom_rect_interactive(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1, ymax = Rank1 + 1, tooltip = str_c(STATE, "-", SEQ_ORDINAL), data_id = str_c(STATE, "-", SEQ_ORDINAL), fill = STATE), data = dataEvents) +
     theme_classic() +
-    scale_fill_manual(values = colors) +
+    scale_fill_manual(values = colorsDef) +
     labs(title = sprintf("Selected: %s ... N = %i ", pathClicked, length(selected$SUBJECT_ID))) +
     theme(
       axis.text.x = element_text(face = "plain", size = 8, colour = "black"),
@@ -80,7 +86,7 @@ clustPlots <- function(patStateLevel, pathClicked, patPaths, colorsDef) { # FUNC
       axis.ticks.y = element_blank(),
       axis.line.y = element_blank()
     ) +
-    scale_x_continuous("Time (unit period depends on input data)") +
+    scale_x_continuous("Time (days)") +
     scale_y_continuous("Sequences sorted by eucledian distance based on STATE lengths")+
     guides(fill = guide_legend(
       title = "STATE",
@@ -102,6 +108,21 @@ clustPlots <- function(patStateLevel, pathClicked, patPaths, colorsDef) { # FUNC
          ))
 }
 
+
+# id_new = trajectoryDataPrep2(inputData)
+# id2_new = trajectoryDataPrep2(inputData2)
+#
+# id_old = trajectoryDataPrep(inputData)
+#
+#
+# patStateLevel = id2_new[[3]]
+# pathClicked = "PC diagnosis---Low risk"
+# patPaths = id2_new[[2]]
+# colorsDef = id2_new[[4]]
+#
+# clustPlots2(patStateLevel, pathClicked, patPaths, colorsDef)
+
+
 #' Function plotting patient trajectories with OUT OF COHORT periods and aligning the trajectories by selected drug
 #'
 #' @param patStateLevel data frame from trajectoryDataPrep
@@ -113,50 +134,52 @@ clustPlots <- function(patStateLevel, pathClicked, patPaths, colorsDef) { # FUNC
 #' @param vline reactive user input
 
 drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selectedDrug, arrBy, vline){ #Alignment plot WITH out of cohorts
-
   selectedPaths <- patPaths %>%
-    filter(str_sub(path1, 1, nchar(pathClicked)) == pathClicked)
+    filter(str_detect(path1, str_c("^", pathClicked)))
+
   selectedLevels <- patStateLevel %>%
-    filter(SUBJECT_ID %in% selectedPaths$SUBJECT_ID)
-
-  alignTime <- selectedLevels %>%
-    select(SUBJECT_ID, TIME, DrugLEVEL) %>%
+    filter(SUBJECT_ID %in% selectedPaths$SUBJECT_ID) %>%
     group_by(SUBJECT_ID) %>%
-    filter(DrugLEVEL == selectedDrug) %>%
-    filter(TIME == first(TIME)) %>%
-    mutate(pathAlign = TIME) %>%
-    select(SUBJECT_ID, pathAlign)
+    mutate(REL_STATE_START_DATE = as.numeric(STATE_START_DATE - min(STATE_START_DATE))) %>%
+    mutate(REL_STATE_END_DATE = as.numeric(STATE_END_DATE - min(STATE_START_DATE))) %>%
+    ungroup()
 
-  arrangeRank <- selectedLevels %>%
-    select(SUBJECT_ID, TIME, DrugLEVEL) %>%
+  alignTime = selectedLevels %>%
     group_by(SUBJECT_ID) %>%
-    filter(DrugLEVEL == arrBy) %>%
-    filter(TIME == first(TIME)) %>%
-    mutate(pathStart = TIME) %>%
-    select(SUBJECT_ID, pathStart) %>%
-    left_join(alignTime)
+    filter(str_c(STATE, "-", SEQ_ORDINAL) == selectedDrug) %>%
+    summarise(pathAlign = min(REL_STATE_START_DATE)) %>%
+    ungroup()
 
-  arrangeRank <- arrangeRank %>%
-    mutate(distance = pathAlign - pathStart)%>%
-    filter(!if_any(everything(), is.na)) %>%
-    select(SUBJECT_ID, distance, pathAlign) %>%
-    arrange(desc(distance))
-  arrangeRank$Rank1 <- 1:nrow(arrangeRank)
-  dataDrugs <- left_join(arrangeRank, selectedLevels)
-  dataDrugs$TX <- dataDrugs$TIME - dataDrugs$pathAlign
+  arrangeRank = selectedLevels %>%
+    group_by(SUBJECT_ID) %>%
+    filter(str_c(STATE, "-", SEQ_ORDINAL) == arrBy) %>%
+    summarise(pathStart = min(REL_STATE_START_DATE)) %>%
+    ungroup() %>%
+    inner_join(alignTime, by = join_by(SUBJECT_ID)) %>%
+    mutate(Rank1 = rank(pathAlign - pathStart, ties.method = "first"))
 
-  # Set geom parameters
-  col_name <- dataDrugs$TX
-  row_name <- dataDrugs$Rank1
-  colors <- colorsDef
+  dataEvents <- inner_join(arrangeRank, selectedLevels, by = join_by(SUBJECT_ID)) %>%
+    mutate(REL_STATE_START_DATE = REL_STATE_START_DATE - pathAlign) %>%
+    mutate(REL_STATE_END_DATE = REL_STATE_END_DATE - pathAlign)
 
-  p1 <- ggplot(dataDrugs, aes(x = col_name, y = row_name, tooltip = DrugLEVEL, data_id = DrugLEVEL, fill = STATE)) +
-    geom_tile_interactive() +
+  dataOOC <- dataEvents %>%
+    group_by(SUBJECT_ID, Rank1) %>%
+    summarise(
+      REL_STATE_START_DATE = min(REL_STATE_START_DATE),
+      REL_STATE_END_DATE = max(REL_STATE_END_DATE)
+    ) %>%
+    ungroup()
+
+
+
+  p1 <- ggplot() +
+    geom_rect(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1 -1, ymax = Rank1), fill = colorsDef["OUT OF COHORT"], data = dataOOC) +
+    geom_rect_interactive(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1 - 1, ymax = Rank1, tooltip = str_c(STATE, "-", SEQ_ORDINAL), data_id = str_c(STATE, "-", SEQ_ORDINAL), fill = STATE), data = dataEvents) +
     geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
     geom_vline(colour="#EE5E00", xintercept = vline, size=0.3, alpha=0.9) +
-    annotate("text", x=vline-2, y=-1, label=vline) +
+    annotate("text", x=vline-2, y = -0.5, label=vline) +
     theme_classic() +
-    scale_fill_manual(values=colors) +
+    scale_fill_manual(values=colorsDef) +
     labs(title = sprintf("Selected start: %s - ... N=%i (%.2f%% of the whole data set)
                          \n Aligned by: %s N=%i (%.2f%% of selected)
                          \n Sorted by distance from: %s N=%i (%.2f %% of selected)",
@@ -170,8 +193,8 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
                          length(unique(alignTime$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100,
 
                          arrBy,
-                         length(unique(dataDrugs$SUBJECT_ID)),
-                         length(unique(dataDrugs$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100)) +
+                         length(unique(dataEvents$SUBJECT_ID)),
+                         length(unique(dataEvents$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100)) +
 
     theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
           axis.ticks.x = element_blank(),
@@ -180,7 +203,7 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
           axis.ticks.y = element_blank(),
           axis.line.y = element_blank(),
           plot.title=element_text(size=10)) +
-    scale_x_continuous(name=sprintf("Times before or after the STATE %s", selectedDrug)) +
+    scale_x_continuous(name=sprintf("Time (days) before or after the STATE %s", selectedDrug)) +
     scale_y_continuous(name=" ")+
     guides(fill = guide_legend(
       title = "STATE",
@@ -202,6 +225,23 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
          ))
 }
 
+#
+# id_new = trajectoryDataPrep2(inputData)
+# id2_new = trajectoryDataPrep2(inputData2)
+#
+# id_old = trajectoryDataPrep(inputData)
+#
+#
+# patStateLevel = id_new[[3]]
+# pathClicked = "PAP---Colposcopy"
+# patPaths = id_new[[2]]
+# colorsDef = id_new[[4]]
+# selectedDrug = "HSIL-1"
+# arrBy = "PAP-1"
+# vline = 1000
+#
+# drugLevel02(patStateLevel, pathClicked, patPaths, colorsDef, selectedDrug, arrBy, vline)
+
 
 #' Function plotting funnel of selections made - how many patients get filtered out from initial
 #'
@@ -213,96 +253,37 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
 funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy){ #Alignment plot WITH out of cohorts
 
   selectedPaths <- patPaths %>%
-    filter(str_sub(path1, 1, nchar(pathClicked)) == pathClicked)
+    filter(str_detect(path1, str_c("^", pathClicked)))
+
   selectedLevels <- patStateLevel %>%
-    filter(SUBJECT_ID %in% selectedPaths$SUBJECT_ID)
-
-  alignTime <- selectedLevels %>%
-    select(SUBJECT_ID, TIME, DrugLEVEL) %>%
+    filter(SUBJECT_ID %in% selectedPaths$SUBJECT_ID) %>%
     group_by(SUBJECT_ID) %>%
-    filter(DrugLEVEL == selectedDrug) %>%
-    filter(TIME == first(TIME)) %>%
-    mutate(pathAlign = TIME) %>%
-    select(SUBJECT_ID, pathAlign)
+    mutate(REL_STATE_START_DATE = as.numeric(STATE_START_DATE - min(STATE_START_DATE))) %>%
+    mutate(REL_STATE_END_DATE = as.numeric(STATE_END_DATE - min(STATE_START_DATE))) %>%
+    ungroup()
 
-  arrangeRank <- selectedLevels %>%
-    select(SUBJECT_ID, TIME, DrugLEVEL) %>%
+  alignTime = selectedLevels %>%
     group_by(SUBJECT_ID) %>%
-    filter(DrugLEVEL == arrBy) %>%
-    filter(TIME == first(TIME)) %>%
-    mutate(pathStart = TIME) %>%
-    select(SUBJECT_ID, pathStart) %>%
-    left_join(alignTime)
+    filter(str_c(STATE, "-", SEQ_ORDINAL) == selectedDrug) %>%
+    summarise(pathAlign = min(REL_STATE_START_DATE)) %>%
+    ungroup()
 
-  arrangeRank <- arrangeRank %>%
-    mutate(distance = pathAlign - pathStart)%>%
-    filter(!if_any(everything(), is.na)) %>%
-    select(SUBJECT_ID, distance, pathAlign) %>%
-    arrange(desc(distance))
-  arrangeRank$Rank1 <- 1:nrow(arrangeRank)
-  dataDrugs <- left_join(arrangeRank, selectedLevels)
-  #ataDrugs$TX <- dataDrugs$TIME - dataDrugs$pathAlign
+  arrangeRank = selectedLevels %>%
+    group_by(SUBJECT_ID) %>%
+    filter(str_c(STATE, "-", SEQ_ORDINAL) == arrBy) %>%
+    summarise(pathStart = min(REL_STATE_START_DATE)) %>%
+    ungroup() %>%
+    inner_join(alignTime, by = join_by(SUBJECT_ID)) %>%
+    mutate(Rank1 = rank(pathAlign - pathStart, ties.method = "first"))
 
-  # Set geom parameters
-  #col_name <- dataDrugs$TX
-  #row_name <- dataDrugs$Rank1
-  #colors <- colorsDef
-
-  # p1 <- ggplot(dataDrugs, aes(x = col_name, y = row_name, tooltip = DrugLEVEL, data_id = DrugLEVEL, fill = STATE)) +
-  #   geom_tile_interactive() +
-  #   geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
-  #   geom_vline(colour="#EE5E00", xintercept = vline, size=0.3, alpha=0.9) +
-  #   annotate("text", x=vline-2, y=-1, label=vline) +
-  #   theme_classic() +
-  #   scale_fill_manual(values=colors) +
-  #   labs(title = sprintf("Selected start: %s - ... N=%i (%.2f%% of the whole data set)
-  #                        \n Aligned by: %s N=%i (%.2f%% of selected)
-  #                        \n Sorted by distance from: %s N=%i (%.2f %% of selected)",
-  #
-  #                        pathClicked,
-  #                        length(unique(selectedPaths$SUBJECT_ID)),
-  #                        length(unique(selectedPaths$SUBJECT_ID))/length(unique(patPaths$SUBJECT_ID))*100,
-  #
-  #                        selectedDrug,
-  #                        length(unique(alignTime$SUBJECT_ID)),
-  #                        length(unique(alignTime$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100,
-  #
-  #                        arrBy,
-  #                        length(unique(dataDrugs$SUBJECT_ID)),
-  #                        length(unique(dataDrugs$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100)) +
-  #
-  #   theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
-  #         axis.ticks.x = element_blank(),
-  #         axis.line.x = element_blank(),
-  #         axis.text.y = element_text(face="plain", size=8, colour="black"),
-  #         axis.ticks.y = element_blank(),
-  #         axis.line.y = element_blank(),
-  #         plot.title=element_text(size=10)) +
-  #   scale_x_continuous(name=sprintf("Times before or after the STATE %s", selectedDrug)) +
-  #   scale_y_continuous(name=" ")+
-  #   guides(fill = guide_legend(
-  #     title = "STATE",
-  #     title.theme = element_text(size = 10, face = "plain", colour = "darkgrey", angle = 0),
-  #     label.theme = element_text(face = "plain", size = 9, colour = "darkgrey")
-  #   ))
-  #
-  # girafe(ggobj = p1,
-  #        height_svg = 6,
-  #        width_svg = 8,
-  #        options = list(
-  #          opts_tooltip(
-  #            opacity = .8,
-  #            css = "background-color:yellow; color:black; padding:2px; border-radius:5px;"
-  #          ),
-  #          opts_toolbar(position = "topright"),
-  #          opts_selection(type = "single", only_shiny = FALSE, css = "stroke:#fdfd66;stroke-width:1.4"),
-  #          opts_hover(css = "fill:#444444;stroke:#444444;cursor:pointer;")
-  #        ))
+  dataEvents <- inner_join(arrangeRank, selectedLevels, by = join_by(SUBJECT_ID)) %>%
+    mutate(REL_STATE_START_DATE = REL_STATE_START_DATE - pathAlign) %>%
+    mutate(REL_STATE_END_DATE = REL_STATE_END_DATE - pathAlign)
 
   all_IDs <- length(unique(patPaths$SUBJECT_ID))
   selected_IDs <- length(unique(selectedPaths$SUBJECT_ID))
   align_IDs <- length(unique(alignTime$SUBJECT_ID))
-  dist_IDs <- length(unique(dataDrugs$SUBJECT_ID))
+  dist_IDs <- length(unique(dataEvents$SUBJECT_ID))
 
   fig <- plot_ly()
   fig <- fig %>%
@@ -317,6 +298,7 @@ funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy){ #
   fig
 }
 
+
 #' Function plotting patient trajectories with OUT OF COHORT periods and aligning the trajectories by selected drug
 #'
 #' @param patStateLevel data frame from trajectoryDataPrep
@@ -324,98 +306,98 @@ funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy){ #
 #' @param patPaths data frame from trajectoryDataPrep
 #' @param colorsDef from trajectoryDataPrep
 #' @param selectedDrug reactive input from clustPlots plot for aligning the trajectories by selected drug
-alignArrangeAll <- function(patStateLevel, pathClicked, patPaths, colorsDef, selectedDrug, arrBy, vline){ #Alignment plot WITH out of cohorts
-
-  ### added 5th April 2023
-  pathArrange1 <- patStateLevel %>%
-    select(SUBJECT_ID, TIME, DrugLEVEL) %>%
-    group_by(SUBJECT_ID) %>%
-    filter(DrugLEVEL == selectedDrug) %>%
-    filter(TIME == first(TIME)) %>%
-    mutate(pathAlign = TIME) %>%
-    select(SUBJECT_ID, pathAlign)
-
-  pathArrange2 <- patStateLevel %>%
-    select(SUBJECT_ID, TIME, DrugLEVEL) %>%
-    group_by(SUBJECT_ID) %>%
-    filter(DrugLEVEL == arrBy) %>%
-    filter(TIME == first(TIME)) %>%
-    mutate(pathStart = TIME) %>%
-    select(SUBJECT_ID, pathStart) %>%
-    left_join(pathArrange1)
-
-  pathArrange2 <- pathArrange2 %>%
-    mutate(distance = pathAlign - pathStart)
-  pathArrange2$distance[is.na(pathArrange2$distance)] <- min(pathArrange2$distance)-1 #0
-
-  pathArrange2 <- pathArrange2 %>%
-    select(SUBJECT_ID, distance) %>%
-    arrange(desc(distance))
-  pathArrange2$Rank1 <- 1:nrow(pathArrange2)
-  patStateLevel <- left_join(patStateLevel, pathArrange2)
-
-  selectedDrug <- selectedDrug
-  data <- patStateLevel
-  dataDrugs <- data %>%
-    group_by(SUBJECT_ID) %>%
-    mutate(MONTH1 = 1:n()) %>%
-    ungroup()
-  dataT1 <- dataDrugs %>%
-    filter(DrugLEVEL==selectedDrug) %>%
-    group_by(SUBJECT_ID) %>%
-    mutate(T1 = min(MONTH1)) %>%
-    ungroup() %>%
-    select(SUBJECT_ID, T1) %>%
-    unique()
-  dataDrugs <- left_join(dataDrugs, dataT1)
-  dataDrugs$TX <- dataDrugs$MONTH1 - dataDrugs$T1
-
-  # Set geom parameters
-  col_name <- dataDrugs$TX
-  row_name <- dataDrugs$Rank1 ## reordering change
-  colors <- colorsDef
-
-  p1 <- ggplot(dataDrugs, aes(x = col_name, y = row_name, tooltip = DrugLEVEL, data_id = DrugLEVEL, fill = STATE)) +
-    geom_tile_interactive() +
-    geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
-    geom_vline(colour="#EE5E00", xintercept = vline, size=0.3, alpha=0.9) +
-    annotate("text", x=vline-2, y=-1, label=vline) +
-    theme_classic() +
-    scale_fill_manual(values=colors) +
-    labs(title = sprintf("Align and sort with same conditions from the whole data set")) +
-    theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
-          axis.ticks.x = element_blank(),
-          axis.line.x = element_blank(),
-          axis.text.y = element_text(face="plain", size=8, colour="black"),
-          axis.ticks.y = element_blank(),
-          axis.line.y = element_blank(),
-          plot.title=element_text(size=10)) +
-    theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
-          axis.ticks.x = element_blank(),
-          axis.line.x = element_blank(),
-          axis.text.y = element_text(face="plain", size=8, colour="black"),
-          axis.ticks.y = element_blank(),
-          axis.line.y = element_blank()) +
-    scale_x_continuous(name=sprintf("Times before or after the STATE %s", selectedDrug)) +
-    scale_y_continuous(name=" ")+
-    guides(fill = guide_legend(
-      title = "STATE",
-      title.theme = element_text(size = 10, face = "plain", colour = "darkgrey", angle = 0),
-      label.theme = element_text(face = "plain", size = 9, colour = "darkgrey")
-    ))
-
-  girafe(ggobj = p1,
-         height_svg = 6,
-         width_svg = 8,
-         options = list(
-           opts_tooltip(
-             opacity = .8,
-             css = "background-color:yellow; color:black; padding:2px; border-radius:5px;"
-           ),
-           opts_toolbar(position = "topright"),
-           opts_selection(type = "single", only_shiny = FALSE, css = "stroke:#fdfd66;stroke-width:1.4"),
-           opts_hover(css = "fill:#444444;stroke:#444444;cursor:pointer;")
-
-         ))
-}
-
+# alignArrangeAll <- function(patStateLevel, pathClicked, patPaths, colorsDef, selectedDrug, arrBy, vline){ #Alignment plot WITH out of cohorts
+#
+#   ### added 5th April 2023
+#   pathArrange1 <- patStateLevel %>%
+#     select(SUBJECT_ID, TIME, DrugLEVEL) %>%
+#     group_by(SUBJECT_ID) %>%
+#     filter(DrugLEVEL == selectedDrug) %>%
+#     filter(TIME == first(TIME)) %>%
+#     mutate(pathAlign = TIME) %>%
+#     select(SUBJECT_ID, pathAlign)
+#
+#   pathArrange2 <- patStateLevel %>%
+#     select(SUBJECT_ID, TIME, DrugLEVEL) %>%
+#     group_by(SUBJECT_ID) %>%
+#     filter(DrugLEVEL == arrBy) %>%
+#     filter(TIME == first(TIME)) %>%
+#     mutate(pathStart = TIME) %>%
+#     select(SUBJECT_ID, pathStart) %>%
+#     left_join(pathArrange1)
+#
+#   pathArrange2 <- pathArrange2 %>%
+#     mutate(distance = pathAlign - pathStart)
+#   pathArrange2$distance[is.na(pathArrange2$distance)] <- min(pathArrange2$distance)-1 #0
+#
+#   pathArrange2 <- pathArrange2 %>%
+#     select(SUBJECT_ID, distance) %>%
+#     arrange(desc(distance))
+#   pathArrange2$Rank1 <- 1:nrow(pathArrange2)
+#   patStateLevel <- left_join(patStateLevel, pathArrange2)
+#
+#   selectedDrug <- selectedDrug
+#   data <- patStateLevel
+#   dataDrugs <- data %>%
+#     group_by(SUBJECT_ID) %>%
+#     mutate(MONTH1 = 1:n()) %>%
+#     ungroup()
+#   dataT1 <- dataDrugs %>%
+#     filter(DrugLEVEL==selectedDrug) %>%
+#     group_by(SUBJECT_ID) %>%
+#     mutate(T1 = min(MONTH1)) %>%
+#     ungroup() %>%
+#     select(SUBJECT_ID, T1) %>%
+#     unique()
+#   dataDrugs <- left_join(dataDrugs, dataT1)
+#   dataDrugs$TX <- dataDrugs$MONTH1 - dataDrugs$T1
+#
+#   # Set geom parameters
+#   col_name <- dataDrugs$TX
+#   row_name <- dataDrugs$Rank1 ## reordering change
+#   colors <- colorsDef
+#
+#   p1 <- ggplot(dataDrugs, aes(x = col_name, y = row_name, tooltip = DrugLEVEL, data_id = DrugLEVEL, fill = STATE)) +
+#     geom_tile_interactive() +
+#     geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
+#     geom_vline(colour="#EE5E00", xintercept = vline, size=0.3, alpha=0.9) +
+#     annotate("text", x=vline-2, y=-1, label=vline) +
+#     theme_classic() +
+#     scale_fill_manual(values=colors) +
+#     labs(title = sprintf("Align and sort with same conditions from the whole data set")) +
+#     theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
+#           axis.ticks.x = element_blank(),
+#           axis.line.x = element_blank(),
+#           axis.text.y = element_text(face="plain", size=8, colour="black"),
+#           axis.ticks.y = element_blank(),
+#           axis.line.y = element_blank(),
+#           plot.title=element_text(size=10)) +
+#     theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
+#           axis.ticks.x = element_blank(),
+#           axis.line.x = element_blank(),
+#           axis.text.y = element_text(face="plain", size=8, colour="black"),
+#           axis.ticks.y = element_blank(),
+#           axis.line.y = element_blank()) +
+#     scale_x_continuous(name=sprintf("Times before or after the STATE %s", selectedDrug)) +
+#     scale_y_continuous(name=" ")+
+#     guides(fill = guide_legend(
+#       title = "STATE",
+#       title.theme = element_text(size = 10, face = "plain", colour = "darkgrey", angle = 0),
+#       label.theme = element_text(face = "plain", size = 9, colour = "darkgrey")
+#     ))
+#
+#   girafe(ggobj = p1,
+#          height_svg = 6,
+#          width_svg = 8,
+#          options = list(
+#            opts_tooltip(
+#              opacity = .8,
+#              css = "background-color:yellow; color:black; padding:2px; border-radius:5px;"
+#            ),
+#            opts_toolbar(position = "topright"),
+#            opts_selection(type = "single", only_shiny = FALSE, css = "stroke:#fdfd66;stroke-width:1.4"),
+#            opts_hover(css = "fill:#444444;stroke:#444444;cursor:pointer;")
+#
+#          ))
+# }
+#
