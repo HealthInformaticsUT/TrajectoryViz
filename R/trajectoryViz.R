@@ -62,7 +62,6 @@ trajectoryViz <- function() { ###
                              multiple = FALSE),
                    valueBox(
                      width = 12,
-                     #icon = icon("user"),
                      value = textOutput("n_patients1"),
                      subtitle = "Patients",
                      color = "light-blue"
@@ -77,7 +76,6 @@ trajectoryViz <- function() { ###
                    br(),
                    valueBox(
                      width = 12,
-                     #icon = icon("bars"),
                      value = textOutput("n_traj1"),
                      subtitle = "Unique sequences",
                      color = "light-blue"
@@ -87,7 +85,7 @@ trajectoryViz <- function() { ###
              ),
             box(
               width = 6,
-              title = "Sequences Devided on a Sunburst Chart",
+              title = "Sequences Divided on a Sunburst Chart",
               withSpinner(sunburstOutput("sunburst2", width = "100%"), color = "#3D8FBE", type = 7, size=0.6)
             ),
             box(
@@ -104,7 +102,7 @@ trajectoryViz <- function() { ###
               title = "Patient-level Sequences Aligned and Sorted",
               withSpinner(girafeOutput("drugLevel02"), color = "#3D8FBE", type = 7, size=0.6),
               column(
-                width = 6,
+                width = 4,
                 selectInput("arrBy2",
                             choices = c(NULL),
                             selected = NULL,
@@ -112,10 +110,15 @@ trajectoryViz <- function() { ###
                             width = "200px")
               ),
               column(
-                width = 6,
-                numericInput("vline1", p("Vertical line position"), 365, width = "200px")
-                 )
+                width = 4,
+                numericInput("vline1", p("Indicate distance"), min= 0, 365, width = "200px")
+                 ),
+              column(
+                width = 4,
+                radioButtons("befAft", p("From alignemnt point"), c("Before", "After", "Before or After"), width = "200px")
+              )
             ),
+
             box(
               width = 12
             ),
@@ -203,12 +206,16 @@ trajectoryViz <- function() { ###
     #### options(shiny.maxRequestSize = 20 * 1024^2)
     inputData1 <- reactive({
       req(input$user_uploaded)
-      read_csv(input$user_uploaded$datapath, col_types = cols())
+      inputData <- read_csv(input$user_uploaded$datapath, col_types = cols())
+      if("STATE_LABEL" %in% colnames(inputData)){
+        inputData = inputData %>%
+          rename("STATE" = "STATE_LABEL")
+      }
+      return(inputData)
     })
 
     ## Data preparation from Uploaded file ####
     dataTables1 <- reactive({
-
       if (input$startingState == "Start as imported")({
         return(trajectoryDataPrep(input = inputData1()))
         })
@@ -225,10 +232,21 @@ trajectoryViz <- function() { ###
     freqPaths1 <- reactive(dataTables1()[[1]])
     patPaths1 <- reactive(dataTables1()[[2]])
     patStateLevel1 <- reactive({dataTables1()[[3]]})
-    colorsDef1 <- reactive(dataTables1()[[4]])
-    labels1 <- reactive(dataTables1()[[5]])
-    colors1 <- reactive(dataTables1()[[6]])
     freqPathsPercent1 <- reactive(dataTables1()[[7]])
+
+
+    labels <- reactive(c(unique(inputData1()$STATE), "End")) # "End" is required for RSunburst package input
+    labels1 <- reactive(labels()[!labels() %in% c("START", "EXIT", "OUT OF COHORT", "End")])
+    colors_all <- c("#E69F00", "#56B4E9", "#F0E442", "#009E73",
+                    "#0072B2", "#D55E00", "#CC79A7", "#004949",
+                    "#b66dff", "#924900", "#ff6db6", "#490092", "#601A4A" )
+    colors1 <- reactive(colors_all[1:length(labels1())])
+    colorsDef1 <- reactive(setNames(c(colors1(),"#cccccc"), c(labels1(), "OUT OF COHORT")))
+
+
+
+
+
 
     n_patients1 <- reactive({
       data <- patStateLevel1()
@@ -253,10 +271,11 @@ trajectoryViz <- function() { ###
     observeEvent(input$user_uploaded, updateSelectInput(session, "startingState", choices = c("Start as imported", all_states())))
     observeEvent(input$user_uploaded, updateSelectInput(session, "arrBy2", choices = c(arrByList())))
 
-    ## Reactive used input data ####
+    ## Reactive user input data ####
     startState <- reactive({input$startingState})
     arrBy2 <- reactive({input$arrBy2})
     vline1 <- reactive({input$vline1})
+    befAft <- reactive({input$befAft})
     pathList2 <- reactive({input$sunburst2_click})
     bSelected2 <- reactive({input$clustPlots2_selected})
     output$bSelected2 <- renderText(bSelected2())
@@ -267,12 +286,24 @@ trajectoryViz <- function() { ###
       validate(
         need((!is.null(input$user_uploaded)), "Upload a data set.")
       )
-          return(add_shiny(sunburst(freqPaths1(),
-                           count = TRUE,
-                           colors = list(range = c(colors1(), "#cccccc","#cccccc"), domain = c(labels1(), "OUT OF COHORT", "End")),
-                           legend = list(w=  100, h = 20, s = 5), #TRUE,
-                           breadcrumb = htmlwidgets::JS(("function(x) {return x;}")))))
+          return(add_shiny(
+            htmlwidgets::onRender(
+              sunburst(freqPaths1(),
+                       count = TRUE,
+                       colors = list(range = c(colors1(), "#cccccc","#cccccc"), domain = c(labels1(), "OUT OF COHORT", "End")),
+                       legend = list(w=  200, h = 20, s = 5), #TRUE,
+                       breadcrumb = htmlwidgets::JS(("function(x) {return x;}"))),
+              "
+    function(el,x){
+    d3.select(el).select('.sunburst-togglelegend').property('checked', true);
+    d3.select(el).select('.sunburst-legend').style('visibility', '');
+    }
+    "
+            )
+          )
+          )
     })
+
     output$clustPlots2 <- renderGirafe({
       validate(
         need((!is.null(input$user_uploaded)), "Upload a data set.")
@@ -288,25 +319,16 @@ trajectoryViz <- function() { ###
           need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left."),
           need((!is.null(patPaths1())), "No data to be displayed. Filter again.")
         )
-        return(drugLevel0(patStateLevel1(), pathSelected(), patPaths1(), colorsDef1(), bSelected2(), arrBy2(), vline1()))
+        return(drugLevel0(patStateLevel1(), pathSelected(), patPaths1(), colorsDef1(), bSelected2(), arrBy2(), vline1(), befAft()))
     })
 
-    # output$alignArrangeAll <- renderGirafe ({
-    #   validate(
-    #     need((!is.null(input$user_uploaded)), "Upload a data set."),
-    #     #need((!is.null(input$sunburst2_click)), "Choose the sequence on the Sunburst plot above."),
-    #     need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left.")
-    #   )
-    #     pathSelected <- str_c(pathList2(), collapse = "---")
-    #     return(alignArrangeAll(patStateLevel1(), pathSelected(), patPaths1(), colorsDef1(), bSelected2(), arrBy2()))
-    # })
     output$funnel <- renderPlotly ({
       validate(
         need((!is.null(input$user_uploaded)), "Upload a data set."),
         need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left.")
       )
       pathSelected <- renderText(str_c(pathList2(), collapse = "---"))
-      return(funnel(patStateLevel1(), pathSelected(), patPaths1(), bSelected2(), arrBy2()))
+      return(funnel(patStateLevel1(), pathSelected(), patPaths1(), bSelected2(), arrBy2(), vline1(), befAft()))
     })
 
     ## Table Outputs ----

@@ -4,7 +4,15 @@
 \alias{funnel}
 \title{Function plotting funnel of selections made - how many patients get filtered out from initial}
 \usage{
-funnel(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy)
+funnel(
+  patStateLevel,
+  pathClicked,
+  patPaths,
+  selectedDrug,
+  arrBy,
+  vline,
+  befAft
+)
 }
 \arguments{
 \item{patStateLevel}{data frame from trajectoryDataPrep}

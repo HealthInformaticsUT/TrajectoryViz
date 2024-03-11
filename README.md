@@ -12,15 +12,20 @@ R.
 
 ## Installation
 
-You can install the version 1.0 of TrajectoryViz:
-<https://github.com/MaarjaPajusalu/TrajectoryViz>. 
-Run with:
-trajectoryViz().
-Get your data with Cohort2Trajectory (by Markus
-Haug) as described in its documentation at:
+You can install TrajectoryViz:
+<https://github.com/HealthInformaticsUT/TrajectoryViz>. Run with:
+trajectoryViz(). Get your data with Cohort2Trajectory (by Markus Haug)
+as described in its documentation at:
 <https://github.com/HealthInformaticsUT/Cohort2Trajectory>.
 
 ``` r
 library(trajectoryViz)
 trajectoryViz()
+```
+
+Data files Default size limit in RStudio is 5MB a file. If needed to
+resize, run in the console before executing the Shiny (example size):
+
+``` r
+options(shiny.maxRequestSize = 20 * 1024^2)
 ```

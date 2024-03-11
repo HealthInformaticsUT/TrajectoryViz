@@ -11,7 +11,8 @@ drugLevel0(
   colorsDef,
   selectedDrug,
   arrBy,
-  vline
+  vline,
+  befAft
 )
 }
 \arguments{

@@ -133,7 +133,7 @@ clustPlots <- function(patStateLevel, pathClicked, patPaths, colorsDef) { # FUNC
 #' @param arrBy reactive user input
 #' @param vline reactive user input
 
-drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selectedDrug, arrBy, vline){ #Alignment plot WITH out of cohorts
+drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selectedDrug, arrBy, vline, befAft){ #Alignment plot WITH out of cohorts
   selectedPaths <- patPaths %>%
     filter(str_detect(path1, str_c("^", pathClicked)))
 
@@ -158,6 +158,41 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
     inner_join(alignTime, by = join_by(SUBJECT_ID)) %>%
     mutate(Rank1 = rank(pathAlign - pathStart, ties.method = "first"))
 
+
+  ### added new - to be checked
+
+  arrangeRank <- arrangeRank %>%
+    mutate(distance = pathStart-pathAlign)%>%
+    filter(!if_any(everything(), is.na))
+
+
+  if (befAft == "Before"){
+    arrangeRank$vlinePos1 <- -vline
+    arrangeRank$vlinePos2 <- 0
+  } else if (befAft == "After"){
+    arrangeRank$vlinePos1 <- 0
+    arrangeRank$vlinePos2 <- vline
+  } else {
+    arrangeRank$vlinePos1 <- -vline
+    arrangeRank$vlinePos2 <- vline
+  }
+  #arrangeRank$vlinePos <- vline
+
+  validSubjects <- arrangeRank %>%
+    filter(distance >= vlinePos1 & distance <= vlinePos2)
+  nValid <- length(validSubjects$SUBJECT_ID)
+  if (nValid == 0){
+    validFirstRank <- 0
+    validLastRank <- 0
+  } else {
+    validFirstRank <- min(validSubjects$Rank1)
+    validLastRank <- max(validSubjects$Rank1)
+  }
+  middleValid <- validFirstRank+(validLastRank - validFirstRank)/2
+ # percValid <- nValid/length(unique(dataEvents$SUBJECT_ID))*100
+  ### check end
+
+
   dataEvents <- inner_join(arrangeRank, selectedLevels, by = join_by(SUBJECT_ID)) %>%
     mutate(REL_STATE_START_DATE = REL_STATE_START_DATE - pathAlign) %>%
     mutate(REL_STATE_END_DATE = REL_STATE_END_DATE - pathAlign)
@@ -171,30 +206,67 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
     ungroup()
 
 
-
   p1 <- ggplot() +
+    annotate(geom = "rect", xmin = min(dataEvents$REL_STATE_START_DATE), xmax = max(dataEvents$REL_STATE_END_DATE), ymin = validFirstRank-0.5, ymax = validLastRank,
+             fill = "palegreen", alpha = 0.2) +
     geom_rect(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1 -1, ymax = Rank1), fill = colorsDef["OUT OF COHORT"], data = dataOOC) +
     geom_rect_interactive(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1 - 1, ymax = Rank1, tooltip = str_c(STATE, "-", SEQ_ORDINAL), data_id = str_c(STATE, "-", SEQ_ORDINAL), fill = STATE), data = dataEvents) +
+
+    ###
+    geom_vline(colour="#aaaaaa", xintercept = arrangeRank$vlinePos1-0.5, size=0.3, alpha=0.9) +
+    geom_vline(colour="#aaaaaa", xintercept = arrangeRank$vlinePos2-0.5, size=0.3, alpha=0.9) +
     geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
-    geom_vline(colour="#EE5E00", xintercept = vline, size=0.3, alpha=0.9) +
-    annotate("text", x=vline-2, y = -0.5, label=vline) +
+    annotate("text", x=arrangeRank$vlinePos1-2, y=-1, label=arrangeRank$vlinePos1) +
+    annotate("text", x=arrangeRank$vlinePos2-2, y=-1, label=arrangeRank$vlinePos2) +
+    geom_hline(colour="#aaaaaa", yintercept = validFirstRank-1, size=0.3, alpha=0.9) +
+    geom_hline(colour="#aaaaaa", yintercept = validLastRank, size=0.3, alpha=0.9) +
+    annotate("text", y=middleValid, x=min(dataEvents$REL_STATE_START_DATE)-6, label=sprintf("N=%i \n  within \n timeframe" , nValid )) + # (%.2f%%) \n , percValid
+
     theme_classic() +
     scale_fill_manual(values=colorsDef) +
-    labs(title = sprintf("Selected start: %s - ... N=%i (%.2f%% of the whole data set)
-                         \n Aligned by: %s N=%i (%.2f%% of selected)
-                         \n Sorted by distance from: %s N=%i (%.2f %% of selected)",
+    labs(title = sprintf("%s N=%i (%.2f%% of starting with: %s.. N=%i (%.2f%% of the whole data set)).
+                         \n Sorted by distance from: %s N=%i (%.2f %% of selected)
+                         \n %i subjects have disatance less than %i from (%s) event %s to event %s
+                         ",
+                         selectedDrug,
+                         length(unique(alignTime$SUBJECT_ID)),
+                         length(unique(alignTime$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100,
 
                          pathClicked,
                          length(unique(selectedPaths$SUBJECT_ID)),
                          length(unique(selectedPaths$SUBJECT_ID))/length(unique(patPaths$SUBJECT_ID))*100,
 
-                         selectedDrug,
-                         length(unique(alignTime$SUBJECT_ID)),
-                         length(unique(alignTime$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100,
-
                          arrBy,
                          length(unique(dataEvents$SUBJECT_ID)),
-                         length(unique(dataEvents$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100)) +
+                         length(unique(dataEvents$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100,
+
+                         nValid,
+                         vline,
+                         befAft,
+                         selectedDrug,
+                         arrBy
+    )) +
+
+      # geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
+    # geom_vline(colour="#EE5E00", xintercept = vline, size=0.3, alpha=0.9) +
+    # annotate("text", x=vline-2, y = -0.5, label=vline) +
+    # theme_classic() +
+    # scale_fill_manual(values=colorsDef) +
+    # labs(title = sprintf("Selected start: %s - ... N=%i (%.2f%% of the whole data set)
+    #                      \n Aligned by: %s N=%i (%.2f%% of selected)
+    #                      \n Sorted by distance from: %s N=%i (%.2f %% of selected)",
+    #
+    #                      pathClicked,
+    #                      length(unique(selectedPaths$SUBJECT_ID)),
+    #                      length(unique(selectedPaths$SUBJECT_ID))/length(unique(patPaths$SUBJECT_ID))*100,
+    #
+    #                      selectedDrug,
+    #                      length(unique(alignTime$SUBJECT_ID)),
+    #                      length(unique(alignTime$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100,
+    #
+    #                      arrBy,
+    #                      length(unique(dataEvents$SUBJECT_ID)),
+    #                      length(unique(dataEvents$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100)) +
 
     theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
           axis.ticks.x = element_blank(),
@@ -250,7 +322,7 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
 #' @param patPaths data frame from trajectoryDataPrep
 #' @param selectedDrug reactive input from clustPlots plot for aligning the trajectories by selected drug
 
-funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy){ #Alignment plot WITH out of cohorts
+funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy, vline, befAft){ #Alignment plot WITH out of cohorts
 
   selectedPaths <- patPaths %>%
     filter(str_detect(path1, str_c("^", pathClicked)))
@@ -276,6 +348,34 @@ funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy){ #
     inner_join(alignTime, by = join_by(SUBJECT_ID)) %>%
     mutate(Rank1 = rank(pathAlign - pathStart, ties.method = "first"))
 
+  arrangeRank <- arrangeRank %>%
+    mutate(distance = pathStart-pathAlign)%>%
+    filter(!if_any(everything(), is.na))
+
+
+  if (befAft == "Before"){
+    arrangeRank$vlinePos1 <- -vline
+    arrangeRank$vlinePos2 <- 0
+  } else if (befAft == "After"){
+    arrangeRank$vlinePos1 <- 0
+    arrangeRank$vlinePos2 <- vline
+  } else {
+    arrangeRank$vlinePos1 <- -vline
+    arrangeRank$vlinePos2 <- vline
+  }
+  #arrangeRank$vlinePos <- vline
+
+  validSubjects <- arrangeRank %>%
+    filter(distance >= vlinePos1 & distance <= vlinePos2)
+  nValid <- length(validSubjects$SUBJECT_ID)
+  if (nValid == 0){
+    validFirstRank <- 0
+    validLastRank <- 0
+  } else {
+    validFirstRank <- min(validSubjects$Rank1)
+    validLastRank <- max(validSubjects$Rank1)
+  }
+
   dataEvents <- inner_join(arrangeRank, selectedLevels, by = join_by(SUBJECT_ID)) %>%
     mutate(REL_STATE_START_DATE = REL_STATE_START_DATE - pathAlign) %>%
     mutate(REL_STATE_END_DATE = REL_STATE_END_DATE - pathAlign)
@@ -288,12 +388,16 @@ funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy){ #
   fig <- plot_ly()
   fig <- fig %>%
     add_trace(type = "funnel",
-              y = c("1. All Subjects", "2. Selected from Sunburst", "3. Selected by Aligning", "4. Have the State of Distance"),
-              x = c(all_IDs, selected_IDs, align_IDs, dist_IDs),
+              y = c(sprintf("1. Dataset size:"),
+                    sprintf("2. Trajectory starts with %s:", pathClicked),
+                    sprintf("3. In this group %s is present:", selectedDrug),
+                    sprintf("4. In this group %s is present:", arrBy),
+                    sprintf("5. Disatance less than %i (between %s and %s):", vline, selectedDrug, arrBy)),
+              x = c(all_IDs, selected_IDs, align_IDs, dist_IDs, nValid),
               textposition = "inside",
               textinfo = "number of IDs in group",
               opacity = 0.65,
-              marker = list(color = c("#0dc5c1", "#00a0c1", "#0080c1", "#0060c1")),
+              marker = list(color = c("#0dc5c1", "#00a0c1", "#0080c1", "#0060c1", "#003088")),
               connector = list(line = list(color = "darkgrey", width = 3)))
   fig
 }

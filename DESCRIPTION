@@ -1,4 +1,4 @@
-Package: trajectoryViz
+Package: TrajectoryViz
 Title: Visualize Trajectories (drug sequence, state sequence) and extract detailed paths
 Version: 1.0
 Authors@R: 
@@ -11,8 +11,10 @@ Description: From given data visualise the interactive sunburst diagram.
     Show data details. 
     On sunburst click generate from selected sequence:
       1) Detailed individual trajectories clustered by similarity
-      2) Provide average and median length of states of these trajectories 
-      3) Show lengths of each state aligned from start
+      2) Show lengths of each state aligned from start
+      3) Observe distance between 2 selected states (time before or after selected sequence alignment point)
+      4) Download generated plots and funnel visualisation
+      5) Analyse detailed data tables generated from the source file
 License: Apache License 2.0
 Encoding: UTF-8
 LazyData: true
@@ -41,5 +43,5 @@ Imports:
     devtools,
     plotly,
     shinycssloaders
-URL: https://github.com/MaarjaPajusalu/trajectoryViz
-BugReports: https://github.com/MaarjaPajusalu/trajectoryViz/issues
+URL: https://github.com/HealthInformaticsUT/TrajectoryViz
+BugReports: https://github.com/HealthInformaticsUT/TrajectoryViz/issues

@@ -26,7 +26,8 @@ This vignette describes how to run the package and use it with example dataset [
 To install the package, go to [GitHub repository](https://github.com/HealthInformaticsUT/TrajectoryViz) and install locally.
 TrajectoryViz package relies on [Cohort2Trajectory](https://github.com/HealthInformaticsUT/Cohort2Trajectory) for trajectory data preparation from Atlas into discrete time periods.
 
-The package has been developed with following example use case in mind: • We have access to patient-level treatment trajectories and we can transform those into discrete sequences (with Cohort2Trajectory) - 1 event at a time with equal time slots following each other.
+The package has been developed with following example use case in mind: 
+• We have access to patient-level treatment trajectories and we can transform those into discrete or continuous sequences (with Cohort2Trajectory).
 • We would like to visualize proportions of similar sequences in the population (cohort, data set).
 • We would like to visualize selected sequences on detailed level with or without time gaps between defined events (a lab test, days/months inbetween, a result, days/months inbetween, a procedure etc).
 These events are called STATES in this package.
@@ -39,13 +40,13 @@ knitr::include_graphics("data.png")
 
 ## Running the package
 
-Running the function "trajectoryViz" (named the same as the package itself) opens a Shiny dashboard to start with uploading the input data.
+Running the function "TrajectoryViz" (named the same as the package itself) opens a Shiny dashboard to start with uploading the input data.
 In the "Tables" menu 4 tabs of data present the Source data table and Frequences, Levels and Paths which have been created while running the function to be able to generate the following plots.
 In the "Info" menu the 2 tabs describe the package usage.
 
-```{r trajectoryViz, include = TRUE, eval = FALSE}
-# library(trajectoryViz)
-trajectoryViz::trajectoryViz()
+```{r TrajectoryViz, include = TRUE, eval = FALSE}
+# library(TrajectoryViz)
+TrajectoryViz::TrajectoryViz()
 ```
 
 Optionally the data can be cut from the start in order to have same State (i.e procedure, diagnoses) as the starting point for all sequences in the data set that do have the selected state.
