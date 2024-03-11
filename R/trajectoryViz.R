@@ -113,7 +113,7 @@ trajectoryViz <- function() { ###
               ),
               column(
                 width = 6,
-                numericInput("vline1", p("Vertical line position"), 6, width = "200px")
+                numericInput("vline1", p("Vertical line position"), 365, width = "200px")
                  )
             ),
             box(
@@ -203,7 +203,7 @@ trajectoryViz <- function() { ###
     #### options(shiny.maxRequestSize = 20 * 1024^2)
     inputData1 <- reactive({
       req(input$user_uploaded)
-      read.csv(input$user_uploaded$datapath)
+      read_csv(input$user_uploaded$datapath, col_types = cols())
     })
 
     ## Data preparation from Uploaded file ####
@@ -244,11 +244,11 @@ trajectoryViz <- function() { ###
     ## Update STATES for dropDown selections ####
     all_states <- reactive({
       patStateLevel1 <- patStateLevel1()
-      unique(patStateLevel1$DrugLEVEL)
+      unique(str_c(patStateLevel1$STATE, "-", patStateLevel1$SEQ_ORDINAL))
     })
     arrByList <- reactive({
       patStateLevel1 <- patStateLevel1()
-      unique(patStateLevel1$DrugLEVEL)
+      unique(str_c(patStateLevel1$STATE, "-", patStateLevel1$SEQ_ORDINAL))
     })
     observeEvent(input$user_uploaded, updateSelectInput(session, "startingState", choices = c("Start as imported", all_states())))
     observeEvent(input$user_uploaded, updateSelectInput(session, "arrBy2", choices = c(arrByList())))
@@ -277,12 +277,12 @@ trajectoryViz <- function() { ###
       validate(
         need((!is.null(input$user_uploaded)), "Upload a data set.")
       )
-          pathSelected <- renderText(pathList2())
+          pathSelected <- renderText(str_c(pathList2(), collapse = "---"))
           return(clustPlots(patStateLevel1(), pathSelected(), patPaths1(), colorsDef1()))
     })
 
     output$drugLevel02 <- renderGirafe ({
-      pathSelected <- renderText(pathList2())
+      pathSelected <- renderText(str_c(pathList2(), collapse = "---"))
         validate(
           need((!is.null(input$user_uploaded)), "Upload a data set."),
           need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left."),
@@ -297,7 +297,7 @@ trajectoryViz <- function() { ###
     #     #need((!is.null(input$sunburst2_click)), "Choose the sequence on the Sunburst plot above."),
     #     need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left.")
     #   )
-    #     pathSelected <- renderText(pathList2())
+    #     pathSelected <- str_c(pathList2(), collapse = "---")
     #     return(alignArrangeAll(patStateLevel1(), pathSelected(), patPaths1(), colorsDef1(), bSelected2(), arrBy2()))
     # })
     output$funnel <- renderPlotly ({
@@ -305,7 +305,7 @@ trajectoryViz <- function() { ###
         need((!is.null(input$user_uploaded)), "Upload a data set."),
         need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left.")
       )
-      pathSelected <- renderText(pathList2())
+      pathSelected <- renderText(str_c(pathList2(), collapse = "---"))
       return(funnel(patStateLevel1(), pathSelected(), patPaths1(), bSelected2(), arrBy2()))
     })
 
@@ -314,7 +314,7 @@ trajectoryViz <- function() { ###
       validate(
         need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
       )
-      tableFreqPercent <- freqPathsPercent
+      tableFreqPercent <- freqPathsPercent1()
       datatable(freqPathsPercent1(), filter = "top", options = list(scrollX = TRUE)) %>%
         formatStyle("freq", background = styleColorBar(c(0, max(tableFreqPercent$freq)), "lightblue"))
     })
