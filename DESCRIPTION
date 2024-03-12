@@ -9,9 +9,8 @@ Authors@R:
            comment = c(ORCID = "0000-0001-9715-0678"))
 Description: From given data visualise the interactive sunburst diagram. 
     Show data details. 
-    On sunburst click generate from selected sequence:
       1) Detailed individual trajectories clustered by similarity
-      2) Show lengths of each state aligned from start
+      2) Show lengths of each state aligned from start or select a new state to align by
       3) Observe distance between 2 selected states (time before or after selected sequence alignment point)
       4) Download generated plots and funnel visualisation
       5) Analyse detailed data tables generated from the source file
