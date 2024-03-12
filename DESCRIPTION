@@ -7,9 +7,8 @@ Authors@R:
            role = c("aut", "cre"),
            email = "maarja.pajusalu@ut.ee",
            comment = c(ORCID = "0000-0001-9715-0678"))
-Description: From given data visualise the interactive sunburst diagram. 
-    Show data details. 
-      1) Detailed individual trajectories clustered by similarity
+Description: From uploaded data visualise the interactive sunburst diagram and following interactive detailed plots. 
+      1) Detailed timely individual trajectories clustered by similarity
       2) Show lengths of each state aligned from start or select a new state to align by
       3) Observe distance between 2 selected states (time before or after selected sequence alignment point)
       4) Download generated plots and funnel visualisation

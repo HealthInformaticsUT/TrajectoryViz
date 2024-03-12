@@ -13,13 +13,13 @@ R.
 ## Installation
 
 You can install TrajectoryViz:
-<https://github.com/HealthInformaticsUT/TrajectoryViz>. Run with:
-trajectoryViz(). Get your data with Cohort2Trajectory (by Markus Haug)
-as described in its documentation at:
+<https://github.com/HealthInformaticsUT/TrajectoryViz>. Run with
+function: trajectoryViz(). Get your data with Cohort2Trajectory (by
+Markus Haug) as described in its documentation at:
 <https://github.com/HealthInformaticsUT/Cohort2Trajectory>.
 
 ``` r
-library(trajectoryViz)
+library(TrajectoryViz)
 trajectoryViz()
 ```
 
