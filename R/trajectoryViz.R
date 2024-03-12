@@ -47,7 +47,7 @@ trajectoryViz <- function() { ###
             #### ROW1 ####
              box(
                solidHeader = FALSE,
-               title = "Data overview",
+               title = "Data Overview",
                background = NULL,
                width = 6,
                status = "info",
@@ -106,16 +106,16 @@ trajectoryViz <- function() { ###
                 selectInput("arrBy2",
                             choices = c(NULL),
                             selected = NULL,
-                            p("Arrange by distance from:"),
+                            p("Distance from"),
                             width = "200px")
               ),
               column(
                 width = 4,
-                numericInput("vline1", p("Indicate distance"), min= 0, 365, width = "200px")
+                numericInput("vline1", p("Distance"), min= 0, 365, width = "200px")
                  ),
               column(
                 width = 4,
-                radioButtons("befAft", p("From alignemnt point"), c("Before", "After", "Before or After"), width = "200px")
+                radioButtons("befAft", p("From alignemnt"), c("Before", "After", "Before or After"), width = "200px")
               )
             ),
 

@@ -87,7 +87,7 @@ clustPlots <- function(patStateLevel, pathClicked, patPaths, colorsDef) { # FUNC
       axis.line.y = element_blank()
     ) +
     scale_x_continuous("Time (days)") +
-    scale_y_continuous("Sequences sorted by eucledian distance based on STATE lengths")+
+    scale_y_continuous("Sequences for each subject")+
     guides(fill = guide_legend(
       title = "STATE",
       title.theme = element_text(size = 10, face = "plain", colour = "darkgrey", angle = 0),
@@ -159,8 +159,6 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
     mutate(Rank1 = rank(pathAlign - pathStart, ties.method = "first"))
 
 
-  ### added new - to be checked
-
   arrangeRank <- arrangeRank %>%
     mutate(distance = pathStart-pathAlign)%>%
     filter(!if_any(everything(), is.na))
@@ -176,7 +174,6 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
     arrangeRank$vlinePos1 <- -vline
     arrangeRank$vlinePos2 <- vline
   }
-  #arrangeRank$vlinePos <- vline
 
   validSubjects <- arrangeRank %>%
     filter(distance >= vlinePos1 & distance <= vlinePos2)
@@ -189,8 +186,7 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
     validLastRank <- max(validSubjects$Rank1)
   }
   middleValid <- validFirstRank+(validLastRank - validFirstRank)/2
- # percValid <- nValid/length(unique(dataEvents$SUBJECT_ID))*100
-  ### check end
+  percValid <- nValid/length(unique(arrangeRank$SUBJECT_ID))*100
 
 
   dataEvents <- inner_join(arrangeRank, selectedLevels, by = join_by(SUBJECT_ID)) %>%
@@ -210,9 +206,9 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
     annotate(geom = "rect", xmin = min(dataEvents$REL_STATE_START_DATE), xmax = max(dataEvents$REL_STATE_END_DATE), ymin = validFirstRank-0.5, ymax = validLastRank,
              fill = "palegreen", alpha = 0.2) +
     geom_rect(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1 -1, ymax = Rank1), fill = colorsDef["OUT OF COHORT"], data = dataOOC) +
-    geom_rect_interactive(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1 - 1, ymax = Rank1, tooltip = str_c(STATE, "-", SEQ_ORDINAL), data_id = str_c(STATE, "-", SEQ_ORDINAL), fill = STATE), data = dataEvents) +
-
-    ###
+    geom_rect_interactive(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1 - 1, ymax = Rank1,
+                              tooltip = str_c(STATE, "-", SEQ_ORDINAL), data_id = str_c(STATE, "-", SEQ_ORDINAL), fill = STATE),
+                          data = dataEvents) +
     geom_vline(colour="#aaaaaa", xintercept = arrangeRank$vlinePos1-0.5, size=0.3, alpha=0.9) +
     geom_vline(colour="#aaaaaa", xintercept = arrangeRank$vlinePos2-0.5, size=0.3, alpha=0.9) +
     geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
@@ -220,8 +216,7 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
     annotate("text", x=arrangeRank$vlinePos2-2, y=-1, label=arrangeRank$vlinePos2) +
     geom_hline(colour="#aaaaaa", yintercept = validFirstRank-1, size=0.3, alpha=0.9) +
     geom_hline(colour="#aaaaaa", yintercept = validLastRank, size=0.3, alpha=0.9) +
-    annotate("text", y=middleValid, x=min(dataEvents$REL_STATE_START_DATE)-6, label=sprintf("N=%i \n  within \n timeframe" , nValid )) + # (%.2f%%) \n , percValid
-
+    annotate("text", y=middleValid, x=min(dataEvents$REL_STATE_START_DATE)+100, label=sprintf("N=%i\n%.1f%%" , nValid, percValid )) +
     theme_classic() +
     scale_fill_manual(values=colorsDef) +
     labs(title = sprintf("%s N=%i (%.2f%% of starting with: %s.. N=%i (%.2f%% of the whole data set)).
@@ -246,28 +241,6 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
                          selectedDrug,
                          arrBy
     )) +
-
-      # geom_vline(colour="#444444", xintercept = -0.5, size=0.6, alpha=0.9) +
-    # geom_vline(colour="#EE5E00", xintercept = vline, size=0.3, alpha=0.9) +
-    # annotate("text", x=vline-2, y = -0.5, label=vline) +
-    # theme_classic() +
-    # scale_fill_manual(values=colorsDef) +
-    # labs(title = sprintf("Selected start: %s - ... N=%i (%.2f%% of the whole data set)
-    #                      \n Aligned by: %s N=%i (%.2f%% of selected)
-    #                      \n Sorted by distance from: %s N=%i (%.2f %% of selected)",
-    #
-    #                      pathClicked,
-    #                      length(unique(selectedPaths$SUBJECT_ID)),
-    #                      length(unique(selectedPaths$SUBJECT_ID))/length(unique(patPaths$SUBJECT_ID))*100,
-    #
-    #                      selectedDrug,
-    #                      length(unique(alignTime$SUBJECT_ID)),
-    #                      length(unique(alignTime$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100,
-    #
-    #                      arrBy,
-    #                      length(unique(dataEvents$SUBJECT_ID)),
-    #                      length(unique(dataEvents$SUBJECT_ID))/length(unique(selectedPaths$SUBJECT_ID))*100)) +
-
     theme(axis.text.x = element_text(face="plain", size=8, colour="black"),
           axis.ticks.x = element_blank(),
           axis.line.x = element_blank(),
@@ -275,10 +248,10 @@ drugLevel0 <- function(patStateLevel, pathClicked, patPaths, colorsDef, selected
           axis.ticks.y = element_blank(),
           axis.line.y = element_blank(),
           plot.title=element_text(size=10)) +
-    scale_x_continuous(name=sprintf("Time (days) before or after the STATE %s", selectedDrug)) +
+    scale_x_continuous(name=sprintf("Time (days) from the state %s", selectedDrug)) +
     scale_y_continuous(name=" ")+
     guides(fill = guide_legend(
-      title = "STATE",
+      title = "State",
       title.theme = element_text(size = 10, face = "plain", colour = "darkgrey", angle = 0),
       label.theme = element_text(face = "plain", size = 9, colour = "darkgrey")
     ))
@@ -363,7 +336,6 @@ funnel <- function(patStateLevel, pathClicked, patPaths, selectedDrug, arrBy, vl
     arrangeRank$vlinePos1 <- -vline
     arrangeRank$vlinePos2 <- vline
   }
-  #arrangeRank$vlinePos <- vline
 
   validSubjects <- arrangeRank %>%
     filter(distance >= vlinePos1 & distance <= vlinePos2)
