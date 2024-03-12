@@ -63,7 +63,7 @@ trajectoryViz <- function() { ###
                    valueBox(
                      width = 12,
                      value = textOutput("n_patients1"),
-                     subtitle = "Patients",
+                     subtitle = "Subjects",
                      color = "light-blue"
                    )
                  ),
