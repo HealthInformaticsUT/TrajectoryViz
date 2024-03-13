@@ -62,3 +62,22 @@ resize, run in the console before executing the Shiny (example size):
 ``` r
 options(shiny.maxRequestSize = 20 * 1024^2)
 ```
+
+### License
+
+TrajectoryViz is licensed under Apache License 2.0
+
+### Development
+
+TrajectoryViz is being developed in R Studio. The maintainer:
+<maarja.pajusalu@ut.ee>
+
+### Citation
+
+Pajusalu, M. (2024, March). TrajectoryViz, v1.0. GitHub.
+<https://github.com/HealthInformaticsUT/TrajectoryViz>
+
+### Acknowledgements
+
+Research group of Health-Informatics in University of Tartu
+<https://health-informatics.cs.ut.ee/>
