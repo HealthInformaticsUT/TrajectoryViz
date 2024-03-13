@@ -40,13 +40,13 @@ knitr::include_graphics("data.png")
 
 ## Running the package
 
-Running the function "TrajectoryViz" (named the same as the package itself) opens a Shiny dashboard to start with uploading the input data.
+Running the function "trajectoryViz()" opens a Shiny dashboard to start with uploading the input data.
 In the "Tables" menu 4 tabs of data present the Source data table and Frequences, Levels and Paths which have been created while running the function to be able to generate the following plots.
 In the "Info" menu the 2 tabs describe the package usage.
 
 ```{r TrajectoryViz, include = TRUE, eval = FALSE}
 # library(TrajectoryViz)
-TrajectoryViz::TrajectoryViz()
+TrajectoryViz::trajectoryViz()
 ```
 
 Optionally the data can be cut from the start in order to have same State (i.e procedure, diagnoses) as the starting point for all sequences in the data set that do have the selected state.
@@ -62,7 +62,19 @@ Each row represents 1 patient that has experienced the selected sequence (drugs,
 This will also filter out some sequences if they dont have the state selected for distance sorting.
 • Optional: To better spot the time periods, set the position for vertical line to visualise the time before or after alignment point.
 
+## Dashboard 
+
 ```{r, echo=FALSE, fig.cap="The dashboard with example data.", out.width = '100%'}
 library(knitr)
 knitr::include_graphics("plot-1.png")
+```
+
+
+## Tables
+
+## Tables
+
+```{r, echo=FALSE, fig.cap="Tables generated.", out.width = '100%'}
+library(knitr)
+knitr::include_graphics("plot-2.png")
 ```

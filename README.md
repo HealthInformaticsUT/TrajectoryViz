@@ -10,6 +10,39 @@ interesting patterns. To make the visualization compatible with any OMOP
 formatted database TrajectoryViz relies on Cohort2Trajectory package in
 R.
 
+## The dashboard
+
+<div class="figure">
+
+<img src="plot-1.png" alt="The overview of dashboard." width="100%" />
+<p class="caption">
+The overview of dashboard.
+</p>
+
+</div>
+
+## Tables
+
+<div class="figure">
+
+<img src="plot-2.png" alt="Tables generated." width="100%" />
+<p class="caption">
+Tables generated.
+</p>
+
+</div>
+
+## Example of a data set file
+
+<div class="figure">
+
+<img src="data.png" alt="Example dataset." width="50%" />
+<p class="caption">
+Example dataset.
+</p>
+
+</div>
+
 ## Installation
 
 You can install TrajectoryViz:

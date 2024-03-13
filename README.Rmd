@@ -15,6 +15,30 @@ knitr::opts_chunk$set(
 
 TrajectoryViz is an R package for visualizing patient level event sequences, to complement the sunburst plot based analyses. The patient level sequences can be filtered, shown with the gaps or without, and aligned by different events. All these visualisations are interactive allowing both quantifying the interesting aspects or zooming into interesting patterns. To make the visualization compatible with any OMOP formatted database TrajectoryViz relies on Cohort2Trajectory package in R.   
 
+## The dashboard
+
+```{r, echo=FALSE, fig.cap="The overview of dashboard.", out.width = '100%'}
+library(knitr)
+knitr::include_graphics("plot-1.png")
+```
+
+
+## Tables
+
+```{r, echo=FALSE, fig.cap="Tables generated.", out.width = '100%'}
+library(knitr)
+knitr::include_graphics("plot-2.png")
+```
+
+
+## Example of a data set file
+
+```{r, echo=FALSE, fig.cap="Example dataset.", out.width = '50%'}
+library(knitr)
+knitr::include_graphics("data.png")
+```
+
+
 ## Installation
 
 You can install TrajectoryViz:

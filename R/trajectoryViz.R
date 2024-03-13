@@ -340,18 +340,21 @@ trajectoryViz <- function() { ###
       datatable(freqPathsPercent1(), filter = "top", options = list(scrollX = TRUE)) %>%
         formatStyle("freq", background = styleColorBar(c(0, max(tableFreqPercent$freq)), "lightblue"))
     })
+
     output$tableAll1 <- DT::renderDataTable({
       validate(
         need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
       )
       datatable(inputData1(), filter = "top", options = list(scrollX = TRUE))
     })
+
     output$tablePaths <- DT::renderDataTable({
       validate(
         need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
       )
       datatable(patPaths1(), width ="95%",  height = "auto", filter = "top", options = list(scrollX = TRUE))
     })
+
     output$tableLevels <- DT::renderDataTable({
       validate(
         need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
@@ -360,10 +363,10 @@ trajectoryViz <- function() { ###
     })
 
     ## Tables Downloads ----
-    tableFreqPercent <- reactive({freqPathsPercent1})
-    tableAll <- reactive({inputData1})
-    tablePaths <- reactive({patPaths1})
-    tableLevels <- reactive({patStateLevel1})
+    tableFreqPercent <- reactive({freqPathsPercent1()})
+    tableAll <- reactive({inputData1()})
+    tablePaths <- reactive({patPaths1()})
+    tableLevels <- reactive({patStateLevel1()})
 
     ## Table Download Buttons ####
     output$paths_download_button <- shiny::downloadHandler(
@@ -373,14 +376,14 @@ trajectoryViz <- function() { ###
         write.csv(tablePaths(), file)
       }
     )
-    output$source_download_button <- shiny::downloadHandler(
-      filename = paste0("source-", Sys.Date(), ".csv"),
-      content = function(file) {
-        write.csv(tableAll(), file)
-      }
-    )
+    # output$source_download_button <- shiny::downloadHandler(
+    #   filename = paste0("source-", Sys.Date(), ".csv"),
+    #   content = function(file) {
+    #     write.csv(tableAll(), file)
+    #   }
+    # )
     output$freq2_download_button <- shiny::downloadHandler(
-      filename = paste0("freq2-", Sys.Date(), ".csv"),
+      filename = paste0("freq-", Sys.Date(), ".csv"),
       content = function(file) {
         write.csv(tableFreqPercent(), file)
       }
