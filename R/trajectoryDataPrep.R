@@ -24,6 +24,9 @@ harmonize_data = function(inputData){
 
   inputData = inputData %>%
     mutate(STATE = str_replace_all(STATE, "-", " "))
+  # Handle '+' cases in STATE_LABEL
+  inputData = inputData %>%
+    mutate(STATE = str_replace_all(STATE, "\\+", ""))
 
   return(inputData)
 }

@@ -4,7 +4,7 @@
 \alias{trajectoryViz}
 \title{The main function running the Shiny App}
 \usage{
-trajectoryViz()
+trajectoryViz(inputData = NULL)
 }
 \arguments{
 \item{inputData}{THE INPUT DATA as read_csv("dataASCH.csv")}

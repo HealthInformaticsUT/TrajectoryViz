@@ -70,7 +70,6 @@ clustPlots <- function(patStateLevel, pathClicked, patPaths, colorsDef) { # FUNC
       REL_STATE_END_DATE = max(REL_STATE_END_DATE)
     ) %>%
     ungroup()
-
   # Set geom parameters
   plot <- ggplot(dataEvents) +
     geom_rect(aes(xmin = REL_STATE_START_DATE, xmax = REL_STATE_END_DATE, ymin = Rank1, ymax = Rank1 + 1), fill = colorsDef["OUT OF COHORT"], data = dataOOC) +

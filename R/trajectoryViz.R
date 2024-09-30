@@ -4,7 +4,7 @@
 #'
 #' @export
 #'
-trajectoryViz <- function() { ###
+trajectoryViz <- function(inputData = NULL) { ###
   lapply(c("readr", "tidyr", "tidyverse", "dplyr", "ggplot2",
            "shinydashboard", "shinydashboardPlus", "shiny", "shinyjs",
            "sunburstR", "ggiraph", "stringr", "tibble", "DT", "devtools",
@@ -204,30 +204,67 @@ trajectoryViz <- function() { ###
     ## Read in uploaded data file ####
     #### Default limit is 5MB a file. If needed to resize, run in console before executing the Shiny:
     #### options(shiny.maxRequestSize = 20 * 1024^2)
+    # inputData1 <- reactive({
+    #   if(is.null(inputData)){
+    #   }
+    #   if("STATE_LABEL" %in% colnames(inputData)){
+    #     inputData = inputData %>%
+    #       rename("STATE" = "STATE_LABEL")
+    #   }
+    #   return(inputData)
+    # })
+
     inputData1 <- reactive({
-      req(input$user_uploaded)
-      inputData <- read_csv(input$user_uploaded$datapath, col_types = cols())
-      if("STATE_LABEL" %in% colnames(inputData)){
-        inputData = inputData %>%
-          rename("STATE" = "STATE_LABEL")
+
+      # If user uploads a new file, use that and override inputData
+      if (!is.null(input$user_uploaded)) {
+        data <- read_csv(input$user_uploaded$datapath, col_types = cols())
+        # Optionally assign this data back to inputData to keep it synced
+        inputData <<- data
+      } else if (exists("inputData") && !is.null(inputData)) {
+        # If user has not uploaded but inputData is available, use it
+        data <- inputData
+      } else {
+        return(NULL) # No data available yet
       }
-      return(inputData)
+
+      # Rename column if it exists
+      if ("STATE_LABEL" %in% colnames(data)) {
+        data <- data %>% rename("STATE" = "STATE_LABEL")
+      }
+
+      return(data)
     })
 
     ## Data preparation from Uploaded file ####
     dataTables1 <- reactive({
-      if (input$startingState == "Start as imported")({
+
+      # Ensure inputData1() is available before proceeding
+      req(inputData1())
+
+      if (input$startingState == "Start as imported") {
+        # Directly return the prepared data if the user starts with the imported data
         return(trajectoryDataPrep(input = inputData1()))
-        })
-      isolate(
-      if (input$startingState != "Start as imported")({
-          startState <- reactive({input$startingState})
-          x <- reactive(trajectoryDataPrep(input = inputData1()))
-          patStateLevel <- reactive({x()[[3]]})
-          inputDataCut <- reactive(cutStart(patStateLevel(), startState()))
-          return(trajectoryDataPrep(input = inputDataCut()))})
-      )
+      }
+
+      # Use isolate to prevent reactive dependency until starting state changes
+      isolate({
+        if (input$startingState != "Start as imported") {
+          # Create a reactive to store the starting state
+          startState <- reactive({ input$startingState })
+
+          # Prepare the initial trajectory data
+          x <- trajectoryDataPrep(input = inputData1())
+
+          # Extract the state level data and cut the start state
+          patStateLevel <- x[[3]]
+          inputDataCut <- cutStart(patStateLevel, startState())
+
+          # Prepare the trajectory data again after cutting the start state
+          return(trajectoryDataPrep(input = inputDataCut))
+        }
       })
+    })
 
     freqPaths1 <- reactive(dataTables1()[[1]])
     patPaths1 <- reactive(dataTables1()[[2]])
@@ -241,7 +278,10 @@ trajectoryViz <- function() { ###
                     "#0072B2", "#D55E00", "#CC79A7", "#004949",
                     "#b66dff", "#924900", "#ff6db6", "#490092", "#601A4A" )
     colors1 <- reactive(colors_all[1:length(labels1())])
-    colorsDef1 <- reactive(setNames(c(colors1(),"#cccccc"), c(labels1(), "OUT OF COHORT")))
+
+    colorsDef1 <- reactive(
+      setNames(c(colors1(),"#cccccc"), c(labels1(), "OUT OF COHORT"))
+      )
 
 
 
@@ -268,8 +308,8 @@ trajectoryViz <- function() { ###
       patStateLevel1 <- patStateLevel1()
       unique(str_c(patStateLevel1$STATE, "-", patStateLevel1$SEQ_ORDINAL))
     })
-    observeEvent(input$user_uploaded, updateSelectInput(session, "startingState", choices = c("Start as imported", all_states())))
-    observeEvent(input$user_uploaded, updateSelectInput(session, "arrBy2", choices = c(arrByList())))
+    observeEvent(inputData1(), updateSelectInput(session, "startingState", choices = c("Start as imported", all_states())))
+    observeEvent(inputData1(), updateSelectInput(session, "arrBy2", choices = c(arrByList())))
 
     ## Reactive user input data ####
     startState <- reactive({input$startingState})
@@ -284,7 +324,7 @@ trajectoryViz <- function() { ###
     ## PLOT Outputs #####
     output$sunburst2 <- renderSunburst({
       validate(
-        need((!is.null(input$user_uploaded)), "Upload a data set.")
+        need((!is.null(inputData1())), "Upload a data set.")
       )
           return(add_shiny(
             htmlwidgets::onRender(
@@ -306,7 +346,7 @@ trajectoryViz <- function() { ###
 
     output$clustPlots2 <- renderGirafe({
       validate(
-        need((!is.null(input$user_uploaded)), "Upload a data set.")
+        need((!is.null(inputData1())), "Upload a data set.")
       )
           pathSelected <- renderText(str_c(pathList2(), collapse = "---"))
           return(clustPlots(patStateLevel1(), pathSelected(), patPaths1(), colorsDef1()))
@@ -315,7 +355,7 @@ trajectoryViz <- function() { ###
     output$drugLevel02 <- renderGirafe ({
       pathSelected <- renderText(str_c(pathList2(), collapse = "---"))
         validate(
-          need((!is.null(input$user_uploaded)), "Upload a data set."),
+          need((!is.null(inputData1())), "Upload a data set."),
           need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left."),
           need((!is.null(patPaths1())), "No data to be displayed. Filter again.")
         )
@@ -324,7 +364,7 @@ trajectoryViz <- function() { ###
 
     output$funnel <- renderPlotly ({
       validate(
-        need((!is.null(input$user_uploaded)), "Upload a data set."),
+        need((!is.null(inputData1())), "Upload a data set."),
         need((!is.null(input$clustPlots2_selected)), "Choose the State to align by on the plot left.")
       )
       pathSelected <- renderText(str_c(pathList2(), collapse = "---"))
@@ -334,7 +374,7 @@ trajectoryViz <- function() { ###
     ## Table Outputs ----
     output$tableFreqPercent <- DT::renderDataTable({
       validate(
-        need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
+        need((!is.null(inputData1())), "No data set uploaded yet."),
       )
       tableFreqPercent <- freqPathsPercent1()
       datatable(freqPathsPercent1(), filter = "top", options = list(scrollX = TRUE)) %>%
@@ -343,21 +383,21 @@ trajectoryViz <- function() { ###
 
     output$tableAll1 <- DT::renderDataTable({
       validate(
-        need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
+        need((!is.null(inputData1())), "No data set uploaded yet."),
       )
       datatable(inputData1(), filter = "top", options = list(scrollX = TRUE))
     })
 
     output$tablePaths <- DT::renderDataTable({
       validate(
-        need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
+        need((!is.null(inputData1())), "No data set uploaded yet."),
       )
       datatable(patPaths1(), width ="95%",  height = "auto", filter = "top", options = list(scrollX = TRUE))
     })
 
     output$tableLevels <- DT::renderDataTable({
       validate(
-        need((!is.null(input$user_uploaded)), "No data set uploaded yet."),
+        need((!is.null(inputData1())), "No data set uploaded yet."),
       )
       datatable(patStateLevel1(), width ="95%",  height = "auto", filter = "top", options = list(scrollX = TRUE))
     })
