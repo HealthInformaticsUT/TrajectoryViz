@@ -5,14 +5,10 @@
 \title{The main function running the Shiny App}
 \usage{
 trajectoryViz(inputData = NULL)
-
-trajectoryViz(inputData = NULL)
 }
 \arguments{
 \item{inputData}{THE INPUT DATA as read_csv("dataASCH.csv")}
 }
 \description{
-The main function running the Shiny App
-
 The main function running the Shiny App
 }
