@@ -25,6 +25,9 @@ harmonize_data = function(inputData){
   inputData = inputData %>%
     mutate(STATE = str_replace_all(STATE, "-", " "))
 
+  inputData = inputData %>%
+    mutate(STATE = str_replace_all(STATE, "\\+", ""))
+
   return(inputData)
 }
 
