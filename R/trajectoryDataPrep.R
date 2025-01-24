@@ -83,3 +83,32 @@ trajectoryDataPrep <- function(inputData){
 }
 
 
+#' Input data validation, sets columns to upper case and checks for mandatory columns
+#'
+#' @param inputData input to trajectoryViz without previous preprocessing
+#'
+#' @return list with feedback and input data with upper case column names
+#' @internal
+inputDataValidation <- function(inputData){
+  feedback <- NULL
+  data <- inputData
+  
+  # set colnames to upper
+  colnames(data) <- toupper(colnames(inputData))
+  
+  # check for colnames 
+  mandatoryCols <- c("SUBJECT_ID", "STATE_START_DATE", "STATE_END_DATE", "STATE_LABEL")
+  missingCols <- ""
+  for (name in mandatoryCols){
+    if (!(name %in% colnames(data))){
+      missingCols <- paste(missingCols,name)
+    }
+  }
+  
+  if (nchar(missingCols) > 0){
+    feedback <- paste0("Missing mandatory columns:", missingCols)
+  }
+  
+  return(list(feedback,data))
+  
+}

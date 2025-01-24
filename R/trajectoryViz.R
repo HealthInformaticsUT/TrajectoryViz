@@ -220,19 +220,32 @@ trajectoryViz <- function(inputData = NULL) { ###
       if (!is.null(input$user_uploaded)) {
         data <- read_csv(input$user_uploaded$datapath, col_types = cols())
         # Optionally assign this data back to inputData to keep it synced
-        inputData <<- data
+        #inputData <<- data
       } else if (exists("inputData") && !is.null(inputData)) {
         # If user has not uploaded but inputData is available, use it
         data <- inputData
       } else {
         return(NULL) # No data available yet
       }
-
-      # Rename column if it exists
-      if ("STATE_LABEL" %in% colnames(data)) {
-        data <- data %>% rename("STATE" = "STATE_LABEL")
+      
+      # checks for inconsistencies in data file
+      lst <- inputDataValidation(data)
+      print(lst)
+      feedback <- lst[[1]]
+      data <- lst[[2]]
+      print(feedback)
+      
+      # optional feedback for the user
+      danger <- !(is.null(feedback))
+      
+      if (danger){
+        id <<- showNotification(feedback, duration = NULL, type = "error")
+        return(NULL)
+      } else {
+        if (!is.null(id))
+          removeNotification(id)
       }
-
+      
       return(data)
     })
 
