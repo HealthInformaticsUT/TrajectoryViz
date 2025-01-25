@@ -93,6 +93,7 @@ inputDataValidation <- function(inputData){
   feedback <- NULL
   feedback1 <- NULL
   feedback2 <- NULL
+  feedback3 <- NULL
   data <- inputData
   
   # set colnames to upper
@@ -116,9 +117,10 @@ inputDataValidation <- function(inputData){
     feedback1 <- paste0("Missing mandatory columns:", missingCols)
   }
    
-  # TODO add new line
+  # TODO add new line to messages
+  # TODO find a better way for this
   #subject_id
-  if (typeof(data$SUBJECT_ID) != "integer" | typeof(data$SUBJECT_ID) != "double"){
+  if (typeof(data$SUBJECT_ID) != "integer"){
     feedback2 <- paste0("Subject id column type is ", typeof(data$SUBJECT_ID), ", but must be integer or double. ")
   }
   #state_label
@@ -126,20 +128,34 @@ inputDataValidation <- function(inputData){
     feedback2 <- paste0(feedback2,"State label column type is ", typeof(data$STATE_LABEL), ", but must be character. ")
   }
   #state_start & state_end
+  # try as.Date
   if (typeof(data$STATE_START_DATE) != "character"){
-    feedback2 <- paste0(feedback2,"State start date column type is ", typeof(data$STATE_START_DATE), ", but must be character. ")
+    feedback2 <- paste0(feedback2,"State start date column type is ", typeof(data$STATE_START_DATE), ", but must be character %Y-%M-%D. ")
+  } else {
+    tryCatch({
+      data$STATE_START_DATE = as.Date(data$STATE_START_DATE) 
+    },error = function(cond){
+      feedback3 <- paste0(feedback3, cond)
+    })
   }
   
   if (typeof(data$STATE_END_DATE) != "character"){
-    feedback2 <- paste0(feedback2,"State end date column type is ", typeof(data$STATE_END_DATE), ", but must be character. ")
+    feedback2 <- paste0(feedback2,"State end date column type is ", typeof(data$STATE_END_DATE), ", but must be character %Y-%M-%D. ")
+  } else {
+    tryCatch({
+      data$STATE_END_DATE = as.Date(data$STATE_END_DATE) 
+    },error = function(cond){
+      feedback3 <- paste0(feedback3, cond)
+    })
   }
+  
   #seq_ordinal 
-  if (typeof(data$STATE_START_DATE) != "integer"){
+  if (typeof(data$SEQ_ORDINAL) != "integer"){
     feedback2 <- paste0(feedback2,"Seq ordinal date column type is ", typeof(data$SEQ_ORDINAL), ", but must be integer. ")
   }
   
   # feedback 
-  feedback <- c(feedback1, feedback2)
+  feedback <- c(feedback1, feedback2,feedback3)
   
   return(list(feedback,data))
   
