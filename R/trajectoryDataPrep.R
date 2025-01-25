@@ -91,23 +91,55 @@ trajectoryDataPrep <- function(inputData){
 #' @internal
 inputDataValidation <- function(inputData){
   feedback <- NULL
+  feedback1 <- NULL
+  feedback2 <- NULL
   data <- inputData
   
   # set colnames to upper
   colnames(data) <- toupper(colnames(inputData))
   
   # check for colnames 
-  mandatoryCols <- c("SUBJECT_ID", "STATE_START_DATE", "STATE_END_DATE", "STATE_LABEL")
+  mandatoryCols <- c("SUBJECT_ID", "STATE_START_DATE", "STATE_END_DATE", "SEQ_ORDINAL") # "state_label"
   missingCols <- ""
   for (name in mandatoryCols){
     if (!(name %in% colnames(data))){
       missingCols <- paste(missingCols,name)
-    }
+    } 
+  }
+  
+  # check if state_label or state present 
+  if((!("STATE" %in% colnames(data)) & !("STATE_LABEL" %in% colnames(data)))){
+    missingCols <- paste(missingCols,"STATE_LABEL")
   }
   
   if (nchar(missingCols) > 0){
-    feedback <- paste0("Missing mandatory columns:", missingCols)
+    feedback1 <- paste0("Missing mandatory columns:", missingCols)
   }
+   
+  # TODO add new line
+  #subject_id
+  if (typeof(data$SUBJECT_ID) != "integer" | typeof(data$SUBJECT_ID) != "double"){
+    feedback2 <- paste0("Subject id column type is ", typeof(data$SUBJECT_ID), ", but must be integer or double. ")
+  }
+  #state_label
+  if (typeof(data$STATE_LABEL) != "character"){
+    feedback2 <- paste0(feedback2,"State label column type is ", typeof(data$STATE_LABEL), ", but must be character. ")
+  }
+  #state_start & state_end
+  if (typeof(data$STATE_START_DATE) != "character"){
+    feedback2 <- paste0(feedback2,"State start date column type is ", typeof(data$STATE_START_DATE), ", but must be character. ")
+  }
+  
+  if (typeof(data$STATE_END_DATE) != "character"){
+    feedback2 <- paste0(feedback2,"State end date column type is ", typeof(data$STATE_END_DATE), ", but must be character. ")
+  }
+  #seq_ordinal 
+  if (typeof(data$STATE_START_DATE) != "integer"){
+    feedback2 <- paste0(feedback2,"Seq ordinal date column type is ", typeof(data$SEQ_ORDINAL), ", but must be integer. ")
+  }
+  
+  # feedback 
+  feedback <- c(feedback1, feedback2)
   
   return(list(feedback,data))
   

@@ -230,20 +230,28 @@ trajectoryViz <- function(inputData = NULL) { ###
       
       # checks for inconsistencies in data file
       lst <- inputDataValidation(data)
-      print(lst)
+
       feedback <- lst[[1]]
       data <- lst[[2]]
-      print(feedback)
       
-      # optional feedback for the user
-      danger <- !(is.null(feedback))
+      # missing columns feedback
+      if (!is.null(id))
+        removeNotification(id)
       
-      if (danger){
-        id <<- showNotification(feedback, duration = NULL, type = "error")
+      if (!(is.null(feedback[1])) & !(is.na(feedback[1]))){
+        id <<- showNotification(feedback[1], duration = NULL, type = "error")
+      } 
+      
+      # faulty column types feedback
+      if (!is.null(id2))
+        removeNotification(id2)
+      
+      if (!(is.null(feedback[2])) & !(is.na(feedback[2]))){
+        id2 <<- showNotification(feedback[2], duration = NULL, type = "error")
+      } 
+      
+      if (!(is.null(feedback[2])) | !(is.null(feedback[1]))){
         return(NULL)
-      } else {
-        if (!is.null(id))
-          removeNotification(id)
       }
       
       return(data)
