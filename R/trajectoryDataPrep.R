@@ -91,9 +91,9 @@ trajectoryDataPrep <- function(inputData){
 #' @internal
 inputDataValidation <- function(inputData){
   feedback <- NULL
-  feedback1 <- NULL
-  feedback2 <- NULL
-  feedback3 <- NULL
+  feedbackMissingCols <- NULL
+  feedbackTypeValidation <- NULL
+  #feedback3 <- NULL
   data <- inputData
   
   # set colnames to upper
@@ -114,48 +114,48 @@ inputDataValidation <- function(inputData){
   }
   
   if (nchar(missingCols) > 0){
-    feedback1 <- paste0("Missing mandatory columns:", missingCols)
+    feedbackMissingCols <- paste0("Missing mandatory columns:", missingCols)
   }
    
-  # TODO add new line to messages
-  # TODO find a better way for this
-  #subject_id
-  if (typeof(data$SUBJECT_ID) != "integer"){
-    feedback2 <- paste0("Subject id column type is ", typeof(data$SUBJECT_ID), ", but must be integer or double. ")
-  }
-  #state_label
-  if (typeof(data$STATE_LABEL) != "character"){
-    feedback2 <- paste0(feedback2,"State label column type is ", typeof(data$STATE_LABEL), ", but must be character. ")
-  }
-  #state_start & state_end
-  # try as.Date
-  if (typeof(data$STATE_START_DATE) != "character"){
-    feedback2 <- paste0(feedback2,"State start date column type is ", typeof(data$STATE_START_DATE), ", but must be character %Y-%M-%D. ")
-  } else {
-    tryCatch({
-      data$STATE_START_DATE = as.Date(data$STATE_START_DATE) 
-    },error = function(cond){
-      feedback3 <- paste0(feedback3, cond)
-    })
-  }
+  # column validations and conversions
+  tryCatch({
+    data$SUBJECT_ID = as.integer(data$SUBJECT_ID)
+  },error = function(cond){
+    feedbackTypeValidation <- paste0(feedbackTypeValidation," Error with subject id column: ",cond)
+  })
   
-  if (typeof(data$STATE_END_DATE) != "character"){
-    feedback2 <- paste0(feedback2,"State end date column type is ", typeof(data$STATE_END_DATE), ", but must be character %Y-%M-%D. ")
-  } else {
-    tryCatch({
-      data$STATE_END_DATE = as.Date(data$STATE_END_DATE) 
-    },error = function(cond){
-      feedback3 <- paste0(feedback3, cond)
-    })
-  }
+  tryCatch({
+    data$STATE_LABEL = as.character(data$STATE_LABEL)
+  },error = function(cond){
+    feedbackTypeValidation <- paste0(feedbackTypeValidation," Error with state label column: ",cond)
+  })
   
-  #seq_ordinal 
-  if (typeof(data$SEQ_ORDINAL) != "integer"){
-    feedback2 <- paste0(feedback2,"Seq ordinal date column type is ", typeof(data$SEQ_ORDINAL), ", but must be integer. ")
-  }
+  tryCatch({
+    data$STATE_START_DATE = as.Date(data$STATE_START_DATE)
+  },error = function(cond){
+    feedbackTypeValidation <- paste0(feedbackTypeValidation," Error with state start date column: ",cond)
+  }, warning = function(cond) {
+    feedbackTypeValidation <- paste0(feedbackTypeValidation," Warning with state start date column: ",cond)
+    
+  })
+  
+  tryCatch({
+    data$STATE_END_DATE = as.Date(data$STATE_END_DATE)
+  },error = function(cond){
+    feedbackTypeValidation <- paste0(feedbackTypeValidation," Error with state end date column: ",cond)
+  },warning = function(cond) {
+    feedbackTypeValidation <- paste0(feedbackTypeValidation," Warning with state end date column: ",cond)
+    
+  })
+  
+  tryCatch({
+    data$SEQ_ORDINAL = as.integer(data$SEQ_ORDINAL)
+  },error = function(cond){
+    feedbackTypeValidation <- paste0(feedbackTypeValidation," Error with seq ordinal column: ",cond)
+  })
   
   # feedback 
-  feedback <- c(feedback1, feedback2,feedback3)
+  feedback <- c(feedbackMissingCols, feedbackTypeValidation)
   
   return(list(feedback,data))
   

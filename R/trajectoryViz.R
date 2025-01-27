@@ -239,30 +239,20 @@ trajectoryViz <- function(inputData = NULL) { ###
       if (!(is.null(feedback[1]))){
         if (!(is.na(feedback[1])))
           showNotification(feedback[1], id = "message",duration = NULL, type = "error")
-      } else {
+      } else 
         removeNotification(id = "message")
-      }
       
       
       if (!(is.null(feedback[2])) ){
         if (!(is.na(feedback[2])))
           showNotification(feedback[2], id = "message2",duration = NULL, type = "error")
-      } else {
+      } else 
         removeNotification(id = "message2")
-      }
       
-      # STATE_START_DATE and STATE_END_DATE try error message handling
       
-      if (!(is.null(feedback[3])) ){
-        if (!(is.na(feedback[3])))
-          showNotification(feedback[3], id = "message3", duration = NULL, type = "error")
-      } else{
-        removeNotification(id = "message3")
-      }
-      
-      if (!(is.null(feedback[2])) | !(is.null(feedback[1])) |!(is.null(feedback[3]))){
+      if (!(is.null(feedback[2])) | !(is.null(feedback[1])) )
         return(NULL)
-      }
+      
       
       return(data)
     })
